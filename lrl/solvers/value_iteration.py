@@ -1,7 +1,7 @@
 import numpy as np
 
-from .base_solver import BaseSolver
-from lrl.utils.misc import Timer, count_dict_differences
+from .base_solver import BaseSolver, q_from_outcomes, policy_evaluation
+from lrl.utils.misc import Timer, count_dict_differences, dict_differences, print_dict_by_row
 
 
 class ValueIteration(BaseSolver):
@@ -16,8 +16,6 @@ class ValueIteration(BaseSolver):
         """
         Perform a single iteration of value iteration, updating self.value and storing metadata about the iteration.
 
-        # FEATURE: This can be simplified if actions have to be integer indexed and not possibly tuple indexed
-
         Side Effects:
             self.value: Updated to the newest estimate of the value function
             self.policy: Updated to the greedy policy according to the value function estimate
@@ -28,54 +26,20 @@ class ValueIteration(BaseSolver):
             None
         """
         timer = Timer()
-        delta_max = 0.0
-        delta_sum = 0.0
 
-        value_new = self.value.copy()
-        policy_new = self.policy.copy()
+        value_new, policy_new = policy_evaluation(value_function=self.value, env=self.env, gamma=self.gamma,
+                                                  evaluation_type='max', max_iters=1)
 
-        for state in self.value:
-            actions = self.env.P[state]
-
-            # Actions can be a dict (indexed by tuples of action) or a list (indexed by action number)
-            # Make numpy array for q values and a mapping to remember which q index relates to which action key
-            try:
-                i_to_key = {i: key for i, key in enumerate(actions.keys())}
-            except AttributeError:
-                i_to_key = {i: i for i in range(len(actions))}
-
-            q_values = np.zeros(len(i_to_key))
-
-            for i_a, key in i_to_key.items():
-                action = actions[key]
-                # Each action can have more than one result.  Results are in tuples of
-                # (Probability, NextState (index or tuple), Reward for this action (float), IsTerminal (bool))
-                # Sum contributions from all outcomes
-                # FEATURE: Special handling of terminal state in value iteration?  Works itself out if they all point to
-                #       themselves with 0 reward, but really we just don't need to compute them.  And if we don't zero
-                #       their value somewhere, we've gotta wait for the discount factor to decay them to zero from the
-                #       initialized value.
-                for outcome in action:
-                    probability, next_state, reward, is_terminal = outcome
-                    # q_values[this_action] += Probability of Outcome * (Immediate Reward + Discounted Future Value)
-                    q_values[i_a] += probability * (reward + self.gamma * self.value[next_state])
-
-            # Choose between available actions for this state
-            best_action_index = q_values.argmax()
-            value_new[state] = q_values[best_action_index]
-            best_action_key = i_to_key[best_action_index]
-            policy_new[state] = best_action_key
-
-            this_delta = abs(value_new[state] - self.value[state])
-            delta_max = max(delta_max, this_delta)
-            delta_sum += this_delta
+        delta_max, delta_mean = dict_differences(value_new, self.value)
+        policy_changes = count_dict_differences(policy_new, self.policy)
 
         # Log metadata about iteration
         self.iteration_data.add({'iteration': self.iteration,
-                                 'time': timer.elapsed,
-                                 'delta_mean': delta_sum / len(self.value),
+                                 'time': timer.elapsed(),
+                                 'delta_mean': delta_mean,
                                  'delta_max': delta_max,
-                                 'policy_changes': count_dict_differences(policy_new, self.policy),
+                                 'policy_changes': policy_changes,
+                                 'converged': bool(delta_max <= self.value_function_tolerance),
                                  })
 
         # Store results and increment counter

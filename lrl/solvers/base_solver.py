@@ -1,16 +1,23 @@
 import numpy as np
-from lrl.data_stores import GeneralIterationData
 
+from lrl.data_stores import GeneralIterationData
+from lrl.utils.misc import dict_differences
+
+import logging
+logger = logging.getLogger(__name__)
+# logger.setLevel(logging.DEBUG)
 
 CONVERGENCE_TOLERANCE = 0.000001
+MAX_ITERATIONS = 10
 
 
 class BaseSolver:
     """Base class for solvers"""
-    def __init__(self, env, gamma=0.9, tolerance=CONVERGENCE_TOLERANCE, policy_init_type='zeros',
-                 value_function_initial_value=0.0):
+    def __init__(self, env, gamma=0.9, value_function_tolerance=CONVERGENCE_TOLERANCE, policy_init_type='zeros',
+                 max_iters=MAX_ITERATIONS, value_function_initial_value=0.0):
         self.env = env
-        self.tolerance = tolerance
+        self.value_function_tolerance = value_function_tolerance
+        self.max_iters = max_iters
 
         # Discount Factor
         self.gamma = gamma
@@ -50,12 +57,26 @@ class BaseSolver:
         else:
             raise ValueError(f"Invalid init_type {init_type} - must be one of {valid_init_types}")
 
-        state_keys = self.env.P.keys()
+        state_keys = range(self.env.observation_space.n)
+        # If state is indexed by something other than integer, convert to that
+        try:
+            state_keys = [self.env.index_to_state[k] for k in state_keys]
+        except AttributeError:
+            # If env.index_to_state does not exist, we will index by integer
+            pass
+
         if self.policy_init_type == 'zeros':
             self.policy = {k: 0 for k in state_keys}
         elif self.policy_init_type == 'random':
-            self.policy = {k: np.random.randint(low=0, high=len(self.env.P[k]), size=1, dtype=np.int)[0]
-                           for k in state_keys}
+            self.policy = {k: self.env.action_space.sample() for k in state_keys}
+
+        # Try to convert index actions to their full representation, if used by env
+        try:
+            self.policy = {k: self.env.index_to_action[i_a] for k, i_a in self.policy.items()}
+        except AttributeError:
+            pass
+
+
 
     def iterate(self):
         """
@@ -64,7 +85,9 @@ class BaseSolver:
         This may be an iteration through all states in the environment (like in policy iteration) or obtaining and
         learning from a single experience (like in Q-Learning
 
-        This method should update self.value but not have the side effect of updating self.policy
+        This method should update self.value and may update self.policy, and also commit iteration statistics to
+        self.iteration_data.  Unless the subclass implements a custom self.converged, self.iteration_data should include
+        a boolean entry for "converged", which is used by the default converged() function.
 
         # FEATURE: Should this be named differently?  Step feels intuitive, but can be confused with stepping in the env
         #          Could also do iteration, but doesn't imply that we're just doing a single iteration.
@@ -73,6 +96,29 @@ class BaseSolver:
             None
         """
         pass
+
+    def iterate_to_convergence(self):
+        """
+        Perform self.iterate repeatedly until convergence (max delta < self.tolerance)
+
+        Returns:
+            None
+        """
+        logger.debug(f"Solver iterating to convergence (delta<{self.value_function_tolerance} or iters>{self.max_iters})")
+        # Binding to easily get most recent delta in readable way
+
+        try:
+            converged = self.iteration_data.get(i=-1)['converged']
+        except IndexError:
+            # No records in iteration_data (first iteration), so we can't be converged
+            converged = False
+
+        while (not converged) and (self.iteration < self.max_iters):
+            self.iterate()
+            converged = self.iteration_data.get(i=-1)['converged']
+            logger.debug(f'{self.iteration}: delta_max = {self.iteration_data.get(i=-1)["delta_max"]:.1e}, '
+                         f'policy_changes = {self.iteration_data.get(i=-1)["policy_changes"]}, '
+                         f'converged = {converged}')
 
     def update_policy(self):
         """Update the policy to be greedy relative to the value function
@@ -84,12 +130,12 @@ class BaseSolver:
             None
 
         """
-        pass
+        raise NotImplementedError
 
     def act_greedy(self, state):
         """Returns the greedy action in state given the current value function
 
-        Ties are broken randomly.
+        Ties are broken by taking the first action.
 
         Args:
             state:
@@ -98,4 +144,126 @@ class BaseSolver:
             int: Index of the greedy action
 
         """
-        pass
+        raise NotImplementedError
+
+    def converged(self):
+        """
+        Returns True if solver is converged.
+
+        This may be custom for each solver, but as a default it checks whether the most recent iteration_data entry
+        has converged==True
+
+        Returns:
+            bool: Convergence status (True=converged)
+        """
+        try:
+            return self.iteration_data.get(i=-1)['converged']
+        except IndexError:
+            # Data store has no records and thus cannot be converged
+            return False
+        except AttributeError:
+            raise AttributeError("Iteration Data has no converged entry - cannot determine convergence status")
+
+
+# Helpers
+def q_from_outcomes(outcomes, gamma, value_function):
+    """
+    Compute Q for this transition using the Bellman equation over a list of outcomes
+
+    Args:
+        outcomes (list): List of possible outcomes of this transition in format
+                        [(Probability, Next State, Immediate Reward, Boolean denoting if transition is terminal), ...]
+        gamma (float): Discount factor
+        value_function (dict): Dictionary of current estimate of the value function
+
+    Returns:
+        float: Q value of this transition's outcomes
+    """
+    if len(outcomes) == 0:
+        raise ValueError("Cannot compute Q value of empty list of outcomes")
+
+    # Each action can have more than one result.  Results are in a list of tuples of
+    # (Probability, NextState (index or tuple), Reward for this action (float), IsTerminal (bool))
+    # Sum contributions from all outcomes
+    # FEATURE: Special handling of terminal state in value iteration?  Works itself out if they all point to
+    #       themselves with 0 reward, but really we just don't need to compute them.  And if we don't zero
+    #       their value somewhere, we've gotta wait for the discount factor to decay them to zero from the
+    #       initialized value.
+    q_value = 0.0
+    for outcome in outcomes:
+        probability, next_state, reward, is_terminal = outcome
+        # q_values[this_action] += Probability of Outcome * (Immediate Reward + Discounted Future Value)
+        q_value += probability * (reward + gamma * value_function[next_state])
+    return q_value
+
+
+def policy_evaluation(value_function, env, gamma, policy=None, evaluation_type='max', max_iters=1,
+                      tolerance=CONVERGENCE_TOLERANCE):
+    """
+    TODO: DOCSTRING TBD
+    Args:
+        evaluation_type:
+
+    Returns:
+        TODO: ADD THESE.  Capture both cases
+    """
+    logger.debug(f"Computing policy_evaluation for evaluation_type == {evaluation_type}")
+
+    delta_max = np.inf
+    delta_mean = 0.0
+    iter = 0
+
+    while iter < max_iters and delta_max > tolerance:
+        value_new = value_function.copy()
+
+        if evaluation_type == 'max':
+            # If max, we will have to compute a greedy policy each iteration.  Might as well save and return it.
+            policy_new = {}
+
+        for state in value_function:
+            if evaluation_type == 'max':
+                actions = env.P[state]
+            elif evaluation_type == 'on-policy':
+                actions = {policy[state]: env.P[state][policy[state]]}
+            else:
+                raise ValueError(f"Invalid evaluation_type {evaluation_type}")
+
+            # Actions are a dict keyed by tuples of action (eg: Racetrack) or integer action numbers (eg: FrozenLake)
+            # Make numpy array for q values and a mapping to remember which q index relates to which action key
+            # FEATURE: This could be done up front when initializing the env and then not repeated here to save cpu
+            #          This would also be needed for decoding actions when plotting.
+            i_to_action = {i: action for i, action in enumerate(actions.keys())}
+
+            q_values = np.zeros(len(i_to_action))
+
+            # For each action, compute the q-value of the probabilistic outcome (each action may have multiple possible
+            # outcomes)
+            for i_a, action in i_to_action.items():
+                outcomes = actions[action]
+                q_values[i_a] = q_from_outcomes(outcomes, gamma, value_function)
+
+            if evaluation_type == 'max':
+                # If evaluation_type == max, choose the action that had the best possible outcome.
+                # Break ties by choosing the first tied action.
+                # We also capture the updated greedy policy here, since we've done the work already.
+                best_action_index = q_values.argmax()
+                value_new[state] = q_values[best_action_index]
+                best_action_key = i_to_action[best_action_index]
+                policy_new[state] = best_action_key
+            else:
+                # Otherwise, there's just one value to choose from
+                value_new[state] = q_values[0]
+
+        if max_iters > 1:
+            delta_max, delta_mean = dict_differences(value_new, value_function)
+
+        iter += 1
+        value_function = value_new
+
+    logger.debug(f"Policy evaluation completed after {iter} iters")
+
+    if evaluation_type == 'max':
+        return value_function, policy_new
+    else:
+        return value_function
+
