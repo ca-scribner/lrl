@@ -51,6 +51,29 @@ def count_dict_differences(d1, d2, raise_on_missing_key=True):
     return differences
 
 
+def dict_differences(d1, d2):
+    """
+    Return the maximum and mean of the absolute difference between all elements of two dictionaries
+
+    Args:
+        d1 (dict): Dictionary to compare
+        d2 (dict): Dictionary to compare
+
+    Returns:
+        float: Maximum elementwise difference
+        float: Sum of elementwise differences
+    """
+    keys = d1.keys() | d2.keys()
+    delta_max = -np.inf
+    delta_sum = 0.0
+    for k in keys:
+        delta = abs(d1[k] - d2[k])
+        if delta > delta_max:
+            delta_max = delta
+        delta_sum += delta
+    return delta_max, delta_sum / len(keys)
+
+
 class Timer:
     """A Simple Timer class
     """

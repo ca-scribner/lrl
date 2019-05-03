@@ -23,6 +23,18 @@ class GeneralIterationData:
         """
         self._data.append(d)
 
+    def get(self, i=-1):
+        """
+        Return the ith entry in the data store
+
+        Args:
+            i (int): Index of data to return (can be any valid list index, including -1 and slices)
+
+        Returns:
+            ith entry(ies) if the data store
+        """
+        return self._data[i]
+
     def to_dataframe(self):
         """
         Returns the data structure as a Pandas DataFrame
