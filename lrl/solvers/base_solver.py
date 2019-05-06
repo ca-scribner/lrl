@@ -1,4 +1,5 @@
 import numpy as np
+import math
 
 from lrl.data_stores import GeneralIterationData
 from lrl.utils.misc import dict_differences
@@ -76,8 +77,6 @@ class BaseSolver:
         except AttributeError:
             pass
 
-
-
     def iterate(self):
         """
         Perform the next iteration of the solver.
@@ -99,7 +98,7 @@ class BaseSolver:
 
     def iterate_to_convergence(self):
         """
-        Perform self.iterate repeatedly until convergence (max delta < self.tolerance)
+        Perform self.iterate repeatedly until convergence
 
         Returns:
             None
@@ -107,44 +106,12 @@ class BaseSolver:
         logger.debug(f"Solver iterating to convergence (delta<{self.value_function_tolerance} or iters>{self.max_iters})")
         # Binding to easily get most recent delta in readable way
 
-        try:
-            converged = self.iteration_data.get(i=-1)['converged']
-        except IndexError:
-            # No records in iteration_data (first iteration), so we can't be converged
-            converged = False
-
-        while (not converged) and (self.iteration < self.max_iters):
+        while (not self.converged()) and (self.iteration < self.max_iters):
             self.iterate()
             converged = self.iteration_data.get(i=-1)['converged']
             logger.debug(f'{self.iteration}: delta_max = {self.iteration_data.get(i=-1)["delta_max"]:.1e}, '
                          f'policy_changes = {self.iteration_data.get(i=-1)["policy_changes"]}, '
                          f'converged = {converged}')
-
-    def update_policy(self):
-        """Update the policy to be greedy relative to the value function
-
-        Side Effects:
-            self.policy: Changed to reflect new policy
-
-        Returns:
-            None
-
-        """
-        raise NotImplementedError
-
-    def act_greedy(self, state):
-        """Returns the greedy action in state given the current value function
-
-        Ties are broken by taking the first action.
-
-        Args:
-            state:
-
-        Returns:
-            int: Index of the greedy action
-
-        """
-        raise NotImplementedError
 
     def converged(self):
         """
@@ -200,12 +167,40 @@ def q_from_outcomes(outcomes, gamma, value_function):
 def policy_evaluation(value_function, env, gamma, policy=None, evaluation_type='max', max_iters=1,
                       tolerance=CONVERGENCE_TOLERANCE):
     """
-    TODO: DOCSTRING TBD
+    TODO: Docstring
+
+    Args:
+        value_function:
+        env:
+        gamma:
+        policy:
+        evaluation_type:
+        max_iters:
+        tolerance:
+
+    Returns:
+
+    """
+    if evaluation_type == 'max' or evaluation_type == 'on-policy-iterative':
+        if evaluation_type == 'on-policy-iterative':
+            evaluation_type = 'on-policy'
+        return policy_evaluation_iterative(value_function=value_function, env=env, gamma=gamma, policy=policy,
+                                    evaluation_type=evaluation_type, max_iters=max_iters, tolerance=tolerance)
+    elif evaluation_type == 'on-policy' or evaluation_type == 'on-policy-direct':
+        return policy_evaluation_direct(env=env, gamma=gamma, policy=policy)
+    else:
+        raise ValueError(f'Invalid value for evaluation_type "{evaluation_type}"')
+
+
+def policy_evaluation_iterative(value_function, env, gamma, policy=None, evaluation_type='max', max_iters=1,
+                                tolerance=CONVERGENCE_TOLERANCE):
+    """
+    TODO : DOCSTRING TBD
     Args:
         evaluation_type:
 
     Returns:
-        TODO: ADD THESE.  Capture both cases
+        TODO : ADD THESE.  Capture both cases
     """
     logger.debug(f"Computing policy_evaluation for evaluation_type == {evaluation_type}")
 
@@ -267,3 +262,86 @@ def policy_evaluation(value_function, env, gamma, policy=None, evaluation_type='
     else:
         return value_function
 
+
+def policy_evaluation_direct(env, gamma, policy):
+    """
+    TODO: ...
+    Compute an estimate of the value function for the current policy to within self.tolerance
+
+    Side Effects:
+        self.value: Updated to the newest estimate of the value function
+
+    Returns:
+        None
+    """
+    logger.debug(f"Computing policy_evaluation_direct")
+    a = []
+    b = []
+    i_matrix_to_i_state = []
+    value_new = {}
+
+    # Build A and b matricies to solve this policy's value function.  Each row of A, b corresponds to a different
+    # state's value.
+    # 1)    Pass through all states and act whether they're terminal or not.
+    #           If not terminal, build a row for A and b and keep track of which row in [A,b] maps to which state
+    #           If terminal, do not build a row in A or b and keep track of which index we've skipped so we can
+    #           remove the corresponding column after
+    # 2)    Build numpy arrays for A and b, and remove all terminal columns from A
+    # 3)    Solve Ax=b for x
+    # 4)    Feed x back into value function
+    for i_s in range(env.observation_space.n):
+        state = env.index_to_state[i_s]
+        action = policy[state]
+        outcomes = env.P[state][action]
+
+        # If this has a single outcome which points back to itself with is_terminal==True, this is terminal.
+        # Else, make A, b
+        if len(outcomes) == 1:
+            probability, next_state, reward, is_terminal = outcomes[0]
+            if math.isclose(probability, 1.0) and state == next_state and is_terminal:
+                value_new[state] = 0.0
+                continue
+
+        this_row = np.zeros(env.observation_space.n, dtype=np.float)
+        this_b = 0.0
+
+        i_matrix_to_i_state.append(i_s)
+
+        # Record this V in the matrix
+        this_row[i_s] += 1.0
+
+        # Record any transitions in A and b
+        for outcome in outcomes:
+            probability, next_state, reward, _ = outcome
+            i_next_state = env.state_to_index[next_state]
+
+            this_b += probability * reward
+            this_row[i_next_state] -= probability * gamma
+
+        a.append(this_row)
+        b.append(this_b)
+        print(f'state = {state} ({i_s}) action = {action} --> {next_state} ({i_next_state}), a = {this_row}, b = {this_b}')
+
+    a = np.asarray(a)
+    b = np.asarray(b)
+
+    # Keep columns that are for terminal (omitted from A) states, getting rid of the rest
+    i_matrix_to_i_state = tuple(i_matrix_to_i_state)
+    print(f'a (with terminal) = {a}')
+    print(f'b (with terminal) = {b}')
+    print(f'non_terminal_cols = {i_matrix_to_i_state}')
+    a = a[:, i_matrix_to_i_state]
+    print(f'a = {a}')
+    print(f'b = {b}')
+
+    # Any column corresponding to a terminal state is just a 0 anyway, so remove them
+
+    print(a.shape)
+    print(b.shape)
+
+    non_terminal_values = np.linalg.solve(a, b)
+    print(f'non_terminal_values = {non_terminal_values}')
+    for i, i_s in enumerate(i_matrix_to_i_state):
+        value_new[env.index_to_state[i_s]] = non_terminal_values[i]
+
+    return value_new

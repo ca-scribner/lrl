@@ -1,7 +1,5 @@
-import numpy as np
-
-from .base_solver import BaseSolver, q_from_outcomes, policy_evaluation
-from lrl.utils.misc import Timer, count_dict_differences, dict_differences, print_dict_by_row
+from .base_solver import BaseSolver, policy_evaluation
+from lrl.utils.misc import Timer, count_dict_differences, dict_differences
 
 
 class ValueIteration(BaseSolver):

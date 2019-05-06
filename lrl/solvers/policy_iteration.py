@@ -1,6 +1,4 @@
-import numpy as np
-
-from .base_solver import BaseSolver, q_from_outcomes, policy_evaluation
+from .base_solver import BaseSolver, policy_evaluation
 from lrl.utils.misc import Timer, count_dict_differences, dict_differences
 
 import logging
@@ -13,10 +11,11 @@ class PolicyIteration(BaseSolver):
 
     FEATURE: Improve this docstring.  Add refs
     """
-    def __init__(self, env, max_iters_policy_evaluation=100, **kwargs):
+    def __init__(self, env, max_iters_policy_evaluation=100, policy_evaluation_type='on-policy', **kwargs):
         # FEATURE: Clean up the init arguments
         super().__init__(env, **kwargs)
         self.max_iters_policy_evaluation = max_iters_policy_evaluation
+        self.policy_evaluation_type = policy_evaluation_type
 
     def _policy_evaluation(self):
         """
@@ -28,11 +27,10 @@ class PolicyIteration(BaseSolver):
         Returns:
             None
         """
-        value_new = policy_evaluation(value_function=self.value, env=self.env,
-                                                             policy=self.policy,
-                                                             gamma=self.gamma, evaluation_type='on-policy',
-                                                             tolerance=self.value_function_tolerance,
-                                                             max_iters=self.max_iters_policy_evaluation)
+        value_new = policy_evaluation(value_function=self.value, env=self.env, policy=self.policy, gamma=self.gamma,
+                                      evaluation_type=self.policy_evaluation_type,
+                                      tolerance=self.value_function_tolerance,
+                                      max_iters=self.max_iters_policy_evaluation)
 
         self.value = value_new
 
