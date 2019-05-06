@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 # logger.setLevel(logging.DEBUG)
 
 CONVERGENCE_TOLERANCE = 0.000001
-MAX_ITERATIONS = 10
+MAX_ITERATIONS = 50
 
 
 class BaseSolver:
@@ -265,7 +265,13 @@ def policy_evaluation_iterative(value_function, env, gamma, policy=None, evaluat
 
 def policy_evaluation_direct(env, gamma, policy):
     """
-    TODO: ...
+    TODO:  ...
+    NOTE: This method is almost always slower and more memory intensive than policy_evaluation_iterative due to the
+          construction and solving of the matrix.  scipy's sparse matrix solver spsolve allowed for solution speeds that
+          were comparable to the iterative method and maybe could be a bit faster, but it was not implemented here.
+          Maybe something to try in future (to implement here, we need to refactor the construction of the A matrix
+          below to incrementally build as a sparse matrix rather than build as dense and then convert)
+
     Compute an estimate of the value function for the current policy to within self.tolerance
 
     Side Effects:
@@ -320,28 +326,15 @@ def policy_evaluation_direct(env, gamma, policy):
 
         a.append(this_row)
         b.append(this_b)
-        print(f'state = {state} ({i_s}) action = {action} --> {next_state} ({i_next_state}), a = {this_row}, b = {this_b}')
 
     a = np.asarray(a)
     b = np.asarray(b)
 
     # Keep columns that are for terminal (omitted from A) states, getting rid of the rest
     i_matrix_to_i_state = tuple(i_matrix_to_i_state)
-    print(f'a (with terminal) = {a}')
-    print(f'b (with terminal) = {b}')
-    print(f'non_terminal_cols = {i_matrix_to_i_state}')
     a = a[:, i_matrix_to_i_state]
-    print(f'a = {a}')
-    print(f'b = {b}')
-
-    # Any column corresponding to a terminal state is just a 0 anyway, so remove them
-
-    print(a.shape)
-    print(b.shape)
 
     non_terminal_values = np.linalg.solve(a, b)
-    print(f'non_terminal_values = {non_terminal_values}')
     for i, i_s in enumerate(i_matrix_to_i_state):
         value_new[env.index_to_state[i_s]] = non_terminal_values[i]
-
     return value_new

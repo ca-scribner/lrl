@@ -11,10 +11,10 @@ class PolicyIteration(BaseSolver):
 
     FEATURE: Improve this docstring.  Add refs
     """
-    def __init__(self, env, max_iters_policy_evaluation=100, policy_evaluation_type='on-policy', **kwargs):
+    def __init__(self, env, max_iters_per_policy_evaluation=100, policy_evaluation_type='on-policy-iterative', **kwargs):
         # FEATURE: Clean up the init arguments
         super().__init__(env, **kwargs)
-        self.max_iters_policy_evaluation = max_iters_policy_evaluation
+        self.max_iters_per_policy_evaluation = max_iters_per_policy_evaluation
         self.policy_evaluation_type = policy_evaluation_type
 
     def _policy_evaluation(self):
@@ -30,7 +30,7 @@ class PolicyIteration(BaseSolver):
         value_new = policy_evaluation(value_function=self.value, env=self.env, policy=self.policy, gamma=self.gamma,
                                       evaluation_type=self.policy_evaluation_type,
                                       tolerance=self.value_function_tolerance,
-                                      max_iters=self.max_iters_policy_evaluation)
+                                      max_iters=self.max_iters_per_policy_evaluation)
 
         self.value = value_new
 
