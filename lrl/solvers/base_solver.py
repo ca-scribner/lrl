@@ -6,6 +6,8 @@ logger = logging.getLogger(__name__)
 
 CONVERGENCE_TOLERANCE = 0.000001
 MAX_ITERATIONS = 50
+SOLVER_ITERATION_DATA_FIELDS = ['iteration', 'time', 'delta_max', 'delta_mean', 'policy_changes', 'converged']
+SOLVER_ITERATION_DATA_FIELDS_INDEX = 'iteration'
 
 
 class BaseSolver:
@@ -29,7 +31,8 @@ class BaseSolver:
 
         # Storage for iteration metadata
         self.iteration = 0
-        self.iteration_data = GeneralIterationData()
+        self.iteration_data = GeneralIterationData(columns=SOLVER_ITERATION_DATA_FIELDS,
+                                                   index=SOLVER_ITERATION_DATA_FIELDS_INDEX)
 
     def init_policy(self, init_type=None):
         """

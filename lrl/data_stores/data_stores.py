@@ -1,3 +1,6 @@
+import pandas as pd
+
+
 class GeneralIterationData:
     """Class to store data about solver iterations
 
@@ -8,8 +11,10 @@ class GeneralIterationData:
 
     """
 
-    def __init__(self):
+    def __init__(self, index='iteration', columns=None):
         self._data = []
+        self.index = index
+        self.columns = columns
 
     def add(self, d):
         """
@@ -41,13 +46,25 @@ class GeneralIterationData:
 
         Returns:
             dataframe: Pandas DataFrame of the data
-
         """
         # Add structure so everything is in same order and not random from dict
         # Do something to make data
         # df = pd.DataFrame.from_dict(data)
         # df.set_index('iteration')
-        pass
+        df = pd.DataFrame(self._data, columns=self.columns)
+        if self.index is not None:
+            df = df.set_index(self.index)
+        return df
 
-    def to_csv(self, filename):
-        pass
+    def to_csv(self, filename, **kwargs):
+        """
+        Write data structure to a csv via the Pandas DataFrame
+
+        Args:
+            filename (str): Filename or full path to output data to
+            kwargs (dict): Optional arguments to  be passed to DataFrame.to_csv()
+
+        Returns:
+            None
+        """
+        self.to_dataframe().to_csv(filename, **kwargs)
