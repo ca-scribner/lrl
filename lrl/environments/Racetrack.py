@@ -21,6 +21,12 @@ CHAR_MAP = {
 
 TRACKS = {
     # Naming as units_in_x x units_in_y
+    '3x4_basic': [
+        "WWW",
+        "WFW",
+        "WSW",
+        "WWW",
+    ],
     '5x4_basic': [
         "WWWWW",
         "W  FW",
