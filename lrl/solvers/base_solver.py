@@ -167,19 +167,38 @@ def q_from_outcomes(outcomes, gamma, value_function):
 def policy_evaluation(value_function, env, gamma, policy=None, evaluation_type='max', max_iters=1,
                       tolerance=CONVERGENCE_TOLERANCE):
     """
-    TODO: Docstring
+    Compute the value function of either a given policy of the best available policy (argmax)
+
+    This function serves multiple purposes:
+    -   With evaluation_type == max and max_iters > 1, we iterate on the value function in the typical Value Iteration
+        algorithm fashion by iteratively computing:
+            V_t+1(s) = argmax_a(sum_s'(P(s, a, s')*(Reward(s, a, s') + gamma * V_t(s'))))
+        This returns both the value function and the greedy policy that was computed to generate it
+    -   With evaluation_type == max and max_iters == 1, we compute the greedy value function and policy given our most
+        recent estimate of the value function.  This is effectively the policy_improvement step in Policy Iteration, but
+        also returns an value function as it must be computed anyway.
+    -   With evaluation_type == on-policy, max_iters > 0, and a policy defined, we either iterate or solve directly for
+        the value function in the typical Policy Evaluation style of the Policy Iteration algorithm:
+            V_t+1(s) for policy = sum_s'(P(s, pi(s), s')*(Reward(s, pi(s), s') + gamma * V_t(s')))
+        This returns the value function that indicates the value if following the given policy
 
     Args:
-        value_function:
-        env:
-        gamma:
-        policy:
-        evaluation_type:
-        max_iters:
-        tolerance:
+        value_function (TO BE UPDATED): The current estimate of the value function
+        env (gym.Env.Discrete subclass): Environment describing the MDP to be planned
+        gamma (float): Discount factor
+        policy (TO BE UPDATED): (Required if evaluation_type=='on-policy') Policy to evaluate a value function for
+        evaluation_type (str): One of:
+            max: Compute the greedy value function (compute V using the greedy action for all actions)
+            on-policy-iterative: Compute the value function given a fixed policy iteratively
+            on-policy-direct: Compute the value function given a fixed policy by directly solving the system of
+                              equations (typically much slower and higher memory than the iterative method)
+        max_iters: Maximum number of iterations for any iterative method
+        tolerance: Convergence tolerance on the value function for any iterative method (converged if maximum
+                   elementwise difference between iterations is less than tolerance)
 
     Returns:
-
+        (TO BE UPDATED): Value Function computed
+        (TO BE UPDATED): (returned if evaluation_type == max) Greedy policy corresponding to returned Value Function
     """
     if evaluation_type == 'max' or evaluation_type == 'on-policy-iterative':
         if evaluation_type == 'on-policy-iterative':
@@ -195,14 +214,15 @@ def policy_evaluation(value_function, env, gamma, policy=None, evaluation_type='
 def policy_evaluation_iterative(value_function, env, gamma, policy=None, evaluation_type='max', max_iters=1,
                                 tolerance=CONVERGENCE_TOLERANCE):
     """
-    TODO : DOCSTRING TBD
-    Args:
-        evaluation_type:
+    Compute the value function of either a given policy of the best available policy (argmax) iteratively
+
+    See docstring for policy_evaluation() for more details.
 
     Returns:
-        TODO : ADD THESE.  Capture both cases
+        (TO BE UPDATED): Value Function computed
+        (TO BE UPDATED): (returned if evaluation_type == max) Greedy policy corresponding to returned Value Function
     """
-    logger.debug(f"Computing policy_evaluation for evaluation_type == {evaluation_type}")
+    logger.info(f"Computing policy_evaluation for evaluation_type == {evaluation_type}")
 
     delta_max = np.inf
     delta_mean = 0.0
@@ -251,11 +271,11 @@ def policy_evaluation_iterative(value_function, env, gamma, policy=None, evaluat
 
         if max_iters > 1:
             delta_max, delta_mean = dict_differences(value_new, value_function)
-
+            logger.debug(f"Iter {iter} done with delta_max = {delta_max}")
         iter += 1
         value_function = value_new
 
-    logger.debug(f"Policy evaluation completed after {iter} iters")
+    logger.info(f"Policy evaluation completed after {iter} iters")
 
     if evaluation_type == 'max':
         return value_function, policy_new
@@ -265,20 +285,18 @@ def policy_evaluation_iterative(value_function, env, gamma, policy=None, evaluat
 
 def policy_evaluation_direct(env, gamma, policy):
     """
-    TODO:  ...
+    Compute the value function of either a given policy of the best available policy (argmax) by direct solution
+
+    See docstring for policy_evaluation() for more details.
+
     NOTE: This method is almost always slower and more memory intensive than policy_evaluation_iterative due to the
           construction and solving of the matrix.  scipy's sparse matrix solver spsolve allowed for solution speeds that
           were comparable to the iterative method and maybe could be a bit faster, but it was not implemented here.
           Maybe something to try in future (to implement here, we need to refactor the construction of the A matrix
           below to incrementally build as a sparse matrix rather than build as dense and then convert)
 
-    Compute an estimate of the value function for the current policy to within self.tolerance
-
-    Side Effects:
-        self.value: Updated to the newest estimate of the value function
-
     Returns:
-        None
+        (TO BE UPDATED): Value Function computed
     """
     logger.debug(f"Computing policy_evaluation_direct")
     a = []

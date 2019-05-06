@@ -5,19 +5,25 @@ import logging
 logger = logging.getLogger(__name__)
 # logger.setLevel(logging.DEBUG)
 
+MAX_POLICY_EVAL_ITERS_LAST_IMPROVEMENT = 1000
+
 
 class PolicyIteration(BaseSolver):
     """Solver for policy iteration
 
     FEATURE: Improve this docstring.  Add refs
     """
-    def __init__(self, env, max_iters_per_policy_evaluation=100, policy_evaluation_type='on-policy-iterative', **kwargs):
+    def __init__(self, env, max_policy_eval_iters_per_improvement=10, policy_evaluation_type='on-policy-iterative',
+                 **kwargs):
         # FEATURE: Clean up the init arguments
         super().__init__(env, **kwargs)
-        self.max_iters_per_policy_evaluation = max_iters_per_policy_evaluation
+
+        # Maximum number of policy evaluations invoked in one Evaluate-Improve iteration.  Note that this does not apply
+        # if on the final Evaluate-Improve iteration (eg: if previous Evaluate-Improve iter found 0 policy changes)
+        self.max_policy_eval_iters_per_improvement = max_policy_eval_iters_per_improvement
         self.policy_evaluation_type = policy_evaluation_type
 
-    def _policy_evaluation(self):
+    def _policy_evaluation(self, max_iters=None):
         """
         Compute an estimate of the value function for the current policy to within self.tolerance
 
@@ -27,24 +33,28 @@ class PolicyIteration(BaseSolver):
         Returns:
             None
         """
+        if max_iters is None:
+            max_iters = self.max_policy_eval_iters_per_improvement
         value_new = policy_evaluation(value_function=self.value, env=self.env, policy=self.policy, gamma=self.gamma,
                                       evaluation_type=self.policy_evaluation_type,
                                       tolerance=self.value_function_tolerance,
-                                      max_iters=self.max_iters_per_policy_evaluation)
+                                      max_iters=max_iters)
 
         self.value = value_new
 
     def _policy_improvement(self, return_differences=True):
         """
-        TODO: DOCSTRING.  Mention how value function is updated.  add to sideeffects
+        Update the policy to be greedy relative to the most recent value function
+
+        Side Effects:
+            self.policy: Updated to be greedy relative to self.value
+
         Args:
-            return_differences:
+            return_differences: If True, return number of differences between old and new policies
 
         Returns:
-
+            int: (if return_differences==True) Number of differences between the old and new policies
         """
-        # Note: Strictly following the Policy Iteration from Sutton leads to us not saving this updated value function,
-        # but that seems wasteful.  Instead we will save this value function as well
         value_new, policy_new = policy_evaluation(value_function=self.value, env=self.env,
                                                   gamma=self.gamma, evaluation_type='max')
 
@@ -53,7 +63,6 @@ class PolicyIteration(BaseSolver):
         else:
             returned = None
 
-        self.value = value_new
         self.policy = policy_new
         return returned
 
@@ -82,6 +91,18 @@ class PolicyIteration(BaseSolver):
         policy_changes = self._policy_improvement()
 
         delta_max, delta_mean = dict_differences(self.value, value_old)
+
+        # If this iteration resulted in no policy changes but did not converge to the policy_evaluation convergence
+        # tolerance, do one additional Evaluate-Iterate step to fully converge (this is done for productivity reasons.
+        # Most iterations don't really need to be iterated down to a very small tolerance on the value function and thus
+        # we have the iteration limit self.max_policy_eval_per_improvement.  But to ensure we haven't missed any policy
+        # changes by making this simplification, we ensure whenever we see policy_changes == 0 (eg: we think PI has
+        # converged) that we've fully converged the value function
+        if policy_changes == 0 and delta_max > self.value_function_tolerance:
+            self._policy_evaluation(max_iters=MAX_POLICY_EVAL_ITERS_LAST_IMPROVEMENT)
+
+            # Recompute delta given fully converged solution
+            delta_max, delta_mean = dict_differences(self.value, value_old)
 
         # Log metadata about iteration
         self.iteration_data.add({'iteration': self.iteration,
