@@ -195,4 +195,10 @@ class DictWithHistory(MutableMapping):
         return data
 
     def increment_timepoint(self):
+        """
+        Increments the timepoint at which the object is currently writing
+
+        Returns:
+            None
+        """
         self.current_timepoint += 1
