@@ -84,23 +84,26 @@ class WalkStatistics(object):
         self.walks = []
         self.statistics = []
         self.steps = []
+        self.terminals = []
 
         # Column names/order used for outputting to dataframe
-        self.statistics_columns = ['walk_index', 'reward', 'steps',
+        self.statistics_columns = ['walk_index', 'reward', 'steps', 'terminal',
                                    'reward_mean', 'reward_median', 'reward_std', 'reward_min', 'reward_max',
-                                   'steps_mean', 'steps_median', 'steps_std', 'steps_min', 'steps_max']
+                                   'steps_mean', 'steps_median', 'steps_std', 'steps_min', 'steps_max',
+                                   'terminal_fraction']
 
     def get_statistic(self, statistic='reward_mean', index=-1):
         """
         Return a lazily computed and memorized statistic about the rewards from walks 0 to index
 
-        If the statistic has not been previous computed, it will be computed here
+        If the statistic has not been previous computed, it will be computed here.  See .compute() for definition of
+        statistics available
 
         Side Effects:
             self.statistics[index] will be computed using self.compute() if it has not been already
 
         Args:
-            statistic: Can be (reward or step)
+            statistic: See .compute() for available statistics
             index: Walk index at which statistics are computed (statistics are computed for walks 0 through index)
 
         Returns:
@@ -110,10 +113,22 @@ class WalkStatistics(object):
             self.compute(index=index)
         return self.statistics[index][statistic]
 
-    def add(self, reward, walk):
+    def add(self, reward, walk, terminal):
+        """
+        Add a walk to the data store
+
+        Args:
+            reward (float): Total reward from the walk
+            walk (list): List of states encoutered in the walk, including the starting and final state
+            terminal (bool): Boolean indicating if walk was terminal (did environment say walk has ended)
+
+        Returns:
+            None
+        """
         self.rewards.append(reward)
         self.steps.append(len(walk))
         self.walks.append(walk)
+        self.terminals.append(terminal)
         self.statistics.append(None)
 
     def compute(self, index=-1, force=False):
@@ -151,20 +166,24 @@ class WalkStatistics(object):
             if (self.statistics[index] is None) or force:
                 reward_array = np.array(self.rewards[:slice_end])
                 steps_array = np.array(self.steps[:slice_end])
-                self.statistics[index] = {}
-                self.statistics[index]['reward'] = reward_array[-1]
-                self.statistics[index]['reward_mean'] = np.mean(reward_array)
-                self.statistics[index]['reward_median'] = np.median(reward_array)
-                self.statistics[index]['reward_std'] = np.std(reward_array)
-                self.statistics[index]['reward_max'] = np.max(reward_array)
-                self.statistics[index]['reward_min'] = np.min(reward_array)
-                self.statistics[index]['steps'] = steps_array[-1]
-                self.statistics[index]['steps_mean'] = np.mean(steps_array)
-                self.statistics[index]['steps_median'] = np.median(steps_array)
-                self.statistics[index]['steps_std'] = np.std(steps_array)
-                self.statistics[index]['steps_max'] = np.max(steps_array)
-                self.statistics[index]['steps_min'] = np.min(steps_array)
-                self.statistics[index]['walk_index'] = index
+                terminals_array = np.array(self.terminals[:slice_end])
+                self.statistics[index] = {
+                    'reward': reward_array[-1],
+                    'reward_mean': np.mean(reward_array),
+                    'reward_median': np.median(reward_array),
+                    'reward_std': np.std(reward_array),
+                    'reward_max': np.max(reward_array),
+                    'reward_min': np.min(reward_array),
+                    'steps': steps_array[-1],
+                    'steps_mean': np.mean(steps_array),
+                    'steps_median': np.median(steps_array),
+                    'steps_std': np.std(steps_array),
+                    'steps_max': np.max(steps_array),
+                    'steps_min': np.min(steps_array),
+                    'walk_index': index,
+                    'terminal': terminals_array[-1],
+                    'terminal_fraction': terminals_array.sum() / terminals_array.shape[0],
+                }
 
     def to_dataframe(self):
         """
@@ -186,7 +205,8 @@ class WalkStatistics(object):
             walk_index: The walk index of this row
             reward, steps: The reward and steps obtained for this walk
             *_mean, *_median, *_min, *_max, *_std: Statistics for reward or steps results up to and including this walk
-
+            terminal: Whether this walk was terminal (ended by the environment stating the game was finished)
+            terminal_fraction: Fraction of runs up until this point that were terminal
         Order of columns is set through self.statistics_columns
 
         Args:

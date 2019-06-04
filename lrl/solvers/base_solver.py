@@ -131,6 +131,68 @@ class BaseSolver:
         except AttributeError:
             raise AttributeError("Iteration Data has no converged entry - cannot determine convergence status")
 
+    def run_policy(self, max_steps=1000):
+        """
+        Perform a walk through the environment using the current policy
+
+        FEATURE: Change to allow input of initial state, which then uses that as the start rather than calling env.reset
+
+        Side Effects:
+            self.env will be reset
+
+        Args:
+            max_steps: Maximum number of steps to be taken in the walk (step 0 is taken to be entering initial state)
+
+        Returns:
+            list of states encountered in the walk (including initial and final states)
+            list of rewards obtained during the walk (rewards[0] == 0 as step 0 is simply starting the game)
+            boolean indicating if the walk was terminal according to the environment
+        """
+        states = [self.env.reset()]
+        rewards = [0.0]
+        terminal = False
+
+        for step in range(1, max_steps + 1):
+            logger.debug(f"Starting step {step} from {states[-1]}")
+            action = self.policy[states[-1]]
+            logger.debug(f"Taking action {action}")
+            new_state, reward, terminal, _ = self.env.step(action)
+            logger.debug(f"Arrived in {new_state}, receiving reward {reward}")
+
+            states.append(new_state)
+            rewards.append(reward)
+
+            if terminal:
+                break
+
+        logger.debug(f"Walk completed in {len(states)} steps (terminal={terminal}), receiving total reward of {sum(rewards)}")
+        return states, rewards, terminal
+
+    def score_policy(self, iters=10, max_steps=1000):
+        """
+        Score the current policy by performing 'iters' greedy walks through the environment and returning statistics
+
+        Side Effects:
+            self.env will be reset
+
+        Args:
+            iters: Number of walks through the environment
+            max_steps: Maximum number of steps allowed per walk
+
+        Returns:
+            WalkStatistics: Object containing statistics about the walks (rewards, number of steps, etc.)
+        """
+        logger.info(f'Scoring policy')
+        statistics = WalkStatistics()
+
+        for iter in range(iters):
+            # Walk through the environment following the current policy, up to max_steps total steps
+            states, rewards, terminal = self.run_policy(max_steps=max_steps)
+            statistics.add(reward=sum(rewards), walk=states, terminal=terminal)
+            logger.info(f"Policy scored {statistics.rewards[-1]} in {len(states)} steps (terminal={terminal})")
+
+        return statistics
+
 
 # Helpers
 def q_from_outcomes(outcomes, gamma, value_function):
