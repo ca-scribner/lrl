@@ -51,12 +51,13 @@ class GeneralIterationData:
             dataframe: Pandas DataFrame of the data
         """
         # Add structure so everything is in same order and not random from dict
-        # Do something to make data
-        # df = pd.DataFrame.from_dict(data)
-        # df.set_index('iteration')
+        # Index here is treated like any other column in the pandas array by default
         df = pd.DataFrame(self._data, columns=self.columns)
-        if self.index is not None:
-            df = df.set_index(self.index)
+
+        # Old way, which made the index into the Pandas df index (doing it this way means accessing the index by column
+        # name wont work, eg: df.loc[:, 'iteration'] does not work.
+        # if self.index is not None:
+        #     df = df.set_index(self.index)
         return df
 
     def to_csv(self, filename, **kwargs):
@@ -70,7 +71,7 @@ class GeneralIterationData:
         Returns:
             None
         """
-        self.to_dataframe().to_csv(filename, **kwargs)
+        self.to_dataframe().to_csv(filename, index=False, **kwargs)
 
 
 class DictWithHistory(MutableMapping):
