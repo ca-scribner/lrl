@@ -382,7 +382,7 @@ def track_to_p_matrix(track, char_map=CHAR_MAP, x_vel_limits=None, y_vel_limits=
         W: (Wall) Terminal location with reward
         S: Starting location (can be one or more) with small negative reward.  Note that starting state will always have
            0 velocity
-           FEATURE: Add velocity to start
+           FUTURE: Add velocity to start
         " " (single space): Open track with small negative reward
         F: Finish location with reward
     Rewards and terminal status are assessed based on someone ENTERING that state (eg: if you travel from a starting

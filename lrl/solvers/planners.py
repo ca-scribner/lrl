@@ -15,7 +15,7 @@ CONVERGENCE_TOLERANCE = 0.000001
 class ValueIteration(BaseSolver):
     """Solver for value iteration
 
-    FEATURE: Improve this docstring.  Add refs
+    FUTURE: Improve this docstring.  Add refs
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -59,11 +59,11 @@ class ValueIteration(BaseSolver):
 class PolicyIteration(BaseSolver):
     """Solver for policy iteration
 
-    FEATURE: Improve this docstring.  Add refs
+    FUTURE: Improve this docstring.  Add refs
     """
     def __init__(self, env, max_policy_eval_iters_per_improvement=10, policy_evaluation_type='on-policy-iterative',
                  **kwargs):
-        # FEATURE: Clean up the init arguments
+        # FUTURE: Clean up the init arguments
         super().__init__(env, **kwargs)
 
         # Maximum number of policy evaluations invoked in one Evaluate-Improve iteration.  Note that this does not apply
@@ -241,7 +241,7 @@ def policy_evaluation_iterative(value_function, env, gamma, policy=None, evaluat
 
             # Actions are a dict keyed by tuples of action (eg: Racetrack) or integer action numbers (eg: FrozenLake)
             # Make numpy array for q values and a mapping to remember which q index relates to which action key
-            # FEATURE: This could be done up front when initializing the env and then not repeated here to save cpu
+            # FUTURE: This could be done up front when initializing the env and then not repeated here to save cpu
             #          This would also be needed for decoding actions when plotting.
             i_to_action = {i: action for i, action in enumerate(actions.keys())}
 

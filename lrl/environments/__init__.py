@@ -5,8 +5,8 @@ from gym.envs.registration import register
 # from .frozen_lake import *
 from .Racetrack import *
 
-# FEATURE: Should I register environments here?  Or in env module?  Or?
-# FEATURE: Do I even need a construction function here at all?  What is benefit/downside?
+# FUTURE: Should I register environments here?  Or in env module?  Or?
+# FUTURE: Do I even need a construction function here at all?  What is benefit/downside?
 
 # LAKE_STEP_PROB = 0.5
 # LAKE_STEP_REW = -0.1

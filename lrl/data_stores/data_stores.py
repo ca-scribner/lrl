@@ -6,7 +6,7 @@ from collections import MutableMapping
 class GeneralIterationData:
     """Class to store data about solver iterations
 
-    FEATURE: Need to move this elsewhere
+    FUTURE: Need to move this elsewhere
 
     Data is stored as a list of dictionaries.  This is a placeholder for more advanced storage.  Class gives a minimal
     set of extra bindings for convenience.
@@ -77,7 +77,9 @@ class WalkStatistics(object):
     """
     Container for statistics about a set of independent walks through an environment, typically following one policy
 
-    Statistics are lazily computed and memorized.
+    Statistics are lazily computed and memorized
+
+    TODO: Explain attributes
     """
     def __init__(self):
         self.rewards = []

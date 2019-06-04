@@ -3,7 +3,7 @@ import numpy as np
 
 
 # Helpers
-# FEATURE: Move these to more logical places where people could find and use them
+# FUTURE: Move these to more logical places where people could find and use them
 
 
 def print_dict_by_row(d, fmt='{key:20s}: {val:d}'):

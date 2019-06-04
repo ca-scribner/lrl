@@ -1,4 +1,4 @@
-# FEATURE: How should this actually be formatted?  Probably should remove the import * at least
+# FUTURE: How should this actually be formatted?  Probably should remove the import * at least
 from .misc import *
 from .plotting import *
 

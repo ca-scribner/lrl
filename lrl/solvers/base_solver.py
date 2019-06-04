@@ -1,4 +1,6 @@
-from lrl.data_stores import GeneralIterationData
+import numpy as np
+
+from lrl.data_stores import GeneralIterationData, WalkStatistics
 
 import logging
 logger = logging.getLogger(__name__)
@@ -11,7 +13,9 @@ SOLVER_ITERATION_DATA_FIELDS_INDEX = 'iteration'
 
 
 class BaseSolver:
-    """Base class for solvers"""
+    """Base class for solvers
+
+    TODO: Describe attributes.  Need to include things like policy is keyed by state tuple/index, etc."""
     def __init__(self, env, gamma=0.9, value_function_tolerance=CONVERGENCE_TOLERANCE, policy_init_type='zeros',
                  max_iters=MAX_ITERATIONS, value_function_initial_value=0.0):
         self.env = env
@@ -87,7 +91,7 @@ class BaseSolver:
         self.iteration_data.  Unless the subclass implements a custom self.converged, self.iteration_data should include
         a boolean entry for "converged", which is used by the default converged() function.
 
-        # FEATURE: Should this be named differently?  Step feels intuitive, but can be confused with stepping in the env
+        # FUTURE: Should this be named differently?  Step feels intuitive, but can be confused with stepping in the env
         #          Could also do iteration, but doesn't imply that we're just doing a single iteration.
 
         Returns:
@@ -135,7 +139,7 @@ class BaseSolver:
         """
         Perform a walk through the environment using the current policy
 
-        FEATURE: Change to allow input of initial state, which then uses that as the start rather than calling env.reset
+        FUTURE: Change to allow input of initial state, which then uses that as the start rather than calling env.reset
 
         Side Effects:
             self.env will be reset
@@ -214,7 +218,7 @@ def q_from_outcomes(outcomes, gamma, value_function):
     # Each action can have more than one result.  Results are in a list of tuples of
     # (Probability, NextState (index or tuple), Reward for this action (float), IsTerminal (bool))
     # Sum contributions from all outcomes
-    # FEATURE: Special handling of terminal state in value iteration?  Works itself out if they all point to
+    # FUTURE: Special handling of terminal state in value iteration?  Works itself out if they all point to
     #       themselves with 0 reward, but really we just don't need to compute them.  And if we don't zero
     #       their value somewhere, we've gotta wait for the discount factor to decay them to zero from the
     #       initialized value.
