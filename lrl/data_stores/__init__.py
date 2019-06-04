@@ -1,3 +1,3 @@
 from .data_stores import *
 
-__all__ = ['GeneralIterationData', 'DictWithHistory']
+__all__ = ['GeneralIterationData', 'DictWithHistory', 'WalkStatistics']

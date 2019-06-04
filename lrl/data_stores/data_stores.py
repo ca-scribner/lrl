@@ -1,7 +1,6 @@
 import pandas as pd
 import numpy as np
 from collections import MutableMapping
-import math
 
 
 class GeneralIterationData:
@@ -72,6 +71,149 @@ class GeneralIterationData:
             None
         """
         self.to_dataframe().to_csv(filename, index=False, **kwargs)
+
+
+class WalkStatistics(object):
+    """
+    Container for statistics about a set of independent walks through an environment, typically following one policy
+
+    Statistics are lazily computed and memorized.
+    """
+    def __init__(self):
+        self.rewards = []
+        self.walks = []
+        self.statistics = []
+        self.steps = []
+
+        # Column names/order used for outputting to dataframe
+        self.statistics_columns = ['walk_index', 'reward', 'steps',
+                                   'reward_mean', 'reward_median', 'reward_std', 'reward_min', 'reward_max',
+                                   'steps_mean', 'steps_median', 'steps_std', 'steps_min', 'steps_max']
+
+    def get_statistic(self, statistic='reward_mean', index=-1):
+        """
+        Return a lazily computed and memorized statistic about the rewards from walks 0 to index
+
+        If the statistic has not been previous computed, it will be computed here
+
+        Side Effects:
+            self.statistics[index] will be computed using self.compute() if it has not been already
+
+        Args:
+            statistic: Can be (reward or step)
+            index: Walk index at which statistics are computed (statistics are computed for walks 0 through index)
+
+        Returns:
+            int or float: Value of the statistic requested
+        """
+        if self.statistics[index] is None:
+            self.compute(index=index)
+        return self.statistics[index][statistic]
+
+    def add(self, reward, walk):
+        self.rewards.append(reward)
+        self.steps.append(len(walk))
+        self.walks.append(walk)
+        self.statistics.append(None)
+
+    def compute(self, index=-1, force=False):
+        """
+        Compute and store statistics about rewards and steps for walks up to and including the indexth walk
+
+        Side Effects:
+            self.statistics[index] will be updated
+
+        Args:
+            index (int or 'all'): If integer, the index of the walk to compute statistics for (up to and including this
+                                  walk).  Eg: If 3, compute statistics for index=3 (eg: reward_mean is the mean of
+                                  rewards from walks 0, 1, 2, and 3).
+                                  If 'all', compute statistics for all indices, skipping any that have been previously
+                                  computed unless force == True
+            force (bool): If True, always recompute statistics even if they already exist.  If False, only compute if no
+                          previous statistics exist.
+
+        Returns:
+            None
+        """
+        if index == 'all':
+            # Compute all indices by calling this recursively
+            for i in range(len(self.statistics)):
+                self.compute(index=i, force=force)
+        else:
+            # Compute a single index
+            # Interpret index, which could be negative
+            if index < 0:
+                index = len(self.statistics) + index
+
+            # Get an inclusive slice_end index for grabbing rewards
+            slice_end = index + 1
+
+            if (self.statistics[index] is None) or force:
+                reward_array = np.array(self.rewards[:slice_end])
+                steps_array = np.array(self.steps[:slice_end])
+                self.statistics[index] = {}
+                self.statistics[index]['reward'] = reward_array[-1]
+                self.statistics[index]['reward_mean'] = np.mean(reward_array)
+                self.statistics[index]['reward_median'] = np.median(reward_array)
+                self.statistics[index]['reward_std'] = np.std(reward_array)
+                self.statistics[index]['reward_max'] = np.max(reward_array)
+                self.statistics[index]['reward_min'] = np.min(reward_array)
+                self.statistics[index]['steps'] = steps_array[-1]
+                self.statistics[index]['steps_mean'] = np.mean(steps_array)
+                self.statistics[index]['steps_median'] = np.median(steps_array)
+                self.statistics[index]['steps_std'] = np.std(steps_array)
+                self.statistics[index]['steps_max'] = np.max(steps_array)
+                self.statistics[index]['steps_min'] = np.min(steps_array)
+                self.statistics[index]['walk_index'] = index
+
+    def to_dataframe(self):
+        """
+        Return a Pandas DataFrame of the walk statistics
+
+        Returns:
+            Pandas DataFrame
+        """
+        # Ensure everything is computed
+        self.compute('all')
+        return pd.DataFrame(self.statistics, columns=self.statistics_columns)
+
+    def to_csv(self, filename, **kwargs):
+        """
+        Write statistics to csv via the Pandas DataFrame
+
+        Statistics are output such that each row represents the statistics up to and including that walk.  Each row
+        includes fields for:
+            walk_index: The walk index of this row
+            reward, steps: The reward and steps obtained for this walk
+            *_mean, *_median, *_min, *_max, *_std: Statistics for reward or steps results up to and including this walk
+
+        Order of columns is set through self.statistics_columns
+
+        Args:
+            filename (str): Filename or full path to output data to
+            kwargs (dict): Optional arguments to  be passed to DataFrame.to_csv()
+
+        Returns:
+            None
+        """
+        self.compute('all')
+        self.to_dataframe().to_csv(filename, index=False, **kwargs)
+
+    def __str__(self):
+        self.compute()
+
+        return 'walk: {}, reward: {}, reward_mean: {}, reward_std: {}, reward_max: {}, reward_min: {}, ' \
+               'runs: {}'.format(
+                    self.get_statistic(statistic='walk_index', index=-1),
+                    self.get_statistic(statistic='reward', index=-1),
+                    self.get_statistic(statistic='reward_mean', index=-1),
+                    self.get_statistic(statistic='reward_std', index=-1),
+                    self.get_statistic(statistic='reward_max', index=-1),
+                    self.get_statistic(statistic='reward_min', index=-1),
+                    self.get_statistic(statistic='steps', index=-1),
+                    self.get_statistic(statistic='steps_mean', index=-1),
+
+               )
 
 
 class DictWithHistory(MutableMapping):
