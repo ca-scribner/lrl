@@ -1,7 +1,6 @@
 import pandas as pd
 import numpy as np
-from collections import MutableMapping
-
+from collections.abc import MutableMapping
 
 class GeneralIterationData:
     """Class to store data about solver iterations
@@ -234,7 +233,6 @@ class WalkStatistics(object):
                     self.get_statistic(statistic='reward_min', index=-1),
                     self.get_statistic(statistic='steps', index=-1),
                     self.get_statistic(statistic='steps_mean', index=-1),
-
                )
 
 
@@ -275,14 +273,21 @@ class DictWithHistory(MutableMapping):
         # Current integer timepoint used for writing data
         self.current_timepoint = 0
 
-    def __getitem__(self, item):
+    def __getitem__(self, key):
         # Return most recent _data[item]
-        return self._data[item][-1]
+        """
+        Return the most recent value for key
+
+        Returns:
+            Whatever is contained in ._data[key][-1][-1] (return only the most most recent timepoint, not the
+            timepoint associated with it)
+        """
+        return self._data[key][-1][-1]
 
     def __setitem__(self, key, value):
         if key not in self._data:
             self._data[key] = [(self.current_timepoint, type(value)(0.0))]
-            print(f"Initializing self._data[{key}]={self._data[key][-1]}")
+            # print(f"Initializing self._data[{key}]={self._data[key][-1]}")
 
         # If value is close to the most recent entry, do nothing
         if not np.isclose(self._data[key][-1][1], value):
