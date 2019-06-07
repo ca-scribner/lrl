@@ -2,19 +2,30 @@ import pandas as pd
 import numpy as np
 from collections.abc import MutableMapping
 
+
 class GeneralIterationData:
     """Class to store data about solver iterations
-
-    FUTURE: Need to move this elsewhere
 
     Data is stored as a list of dictionaries.  This is a placeholder for more advanced storage.  Class gives a minimal
     set of extra bindings for convenience.
 
+    The present object has no checks to ensure consistency between added records (all have same fields, etc.).  If any
+    columns are missing from an added record, the underlying Pandas DataFrame will treat these as default missing
+    records.
     """
 
-    def __init__(self, index='iteration', columns=None):
+    def __init__(self, columns=None):
+        """
+        Initialize an instance of the class
+
+        Args:
+            columns (list): An optional list of column names for the data (if specified, this sets the order of the
+                            columns in any output Pandas DataFrame or csv)
+
+        Returns:
+            None
+        """
         self._data = []
-        self.index = index
         self.columns = columns
 
     def add(self, d):
@@ -31,7 +42,7 @@ class GeneralIterationData:
 
     def get(self, i=-1):
         """
-        Return the ith entry in the data store
+        Return the ith entry in the data store (index of storage is in order in which data is committed to this object)
 
         Args:
             i (int): Index of data to return (can be any valid list index, including -1 and slices)
@@ -49,13 +60,7 @@ class GeneralIterationData:
             dataframe: Pandas DataFrame of the data
         """
         # Add structure so everything is in same order and not random from dict
-        # Index here is treated like any other column in the pandas array by default
         df = pd.DataFrame(self._data, columns=self.columns)
-
-        # Old way, which made the index into the Pandas df index (doing it this way means accessing the index by column
-        # name wont work, eg: df.loc[:, 'iteration'] does not work.
-        # if self.index is not None:
-        #     df = df.set_index(self.index)
         return df
 
     def to_csv(self, filename, **kwargs):
