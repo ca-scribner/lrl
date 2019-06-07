@@ -185,6 +185,89 @@ def test_DictWithHistory():
 
 
 @pytest.fixture
+def supply_DictWithHistory_simple():
+    """
+    Return a simple DictWithHistory Factory (use this rather than direct instance for multiple DH in same test)
+    Returns:
+        A factory that generates simple DictWithHistory instances
+    """
+    class Factory:
+        def get(self):
+            dh = DictWithHistory(timepoint_mode='explicit')
+            dh['a'] = 1.0
+            dh['b'] = 2.0
+            dh['c'] = 3.0
+            dh.increment_timepoint()
+            dh['b'] = 2.0  # Shouldn't update anything
+            dh['c'] = 3.1  # Should update timepoint
+            return dh
+    return Factory()
+
+
+def test_DictWithHistory_update(supply_DictWithHistory_simple):
+    dh1 = supply_DictWithHistory_simple.get()
+    dh2 = supply_DictWithHistory_simple.get()
+    dh3 = supply_DictWithHistory_simple.get()
+
+    d = {'a': 11.1, 'b': 12.1, 'c': 13.1}
+    d2 = {'a': 11.2, 'b': 12.2, 'c': 13.2}
+
+    # Update on timepoint=explicit should add everything from a dict to current timepoint
+    for k, v in d.items():
+        dh1[k] = v
+
+    dh2.update(d)
+    assert dh1.as_dict() == dh2.as_dict()
+    assert dh1._data == dh2._data
+    assert dh1.current_timepoint == dh2.current_timepoint
+
+    # If timepoint_mode == 'implicit', all entries should still go to same timepoint (but timepoint will increment
+    # after update)
+    dh3.timepoint_mode = 'implicit'
+    dh3.update(d)
+    assert dh1.as_dict() == dh3.as_dict()
+    assert dh1._data == dh3._data
+    assert dh1.current_timepoint + 1 == dh3.current_timepoint
+
+    # And adding more data will be like I incremented the timepoint manually
+    dh1.increment_timepoint()
+    for k, v in d2.items():
+        dh1[k] = v
+
+    dh3.update(d2)
+    assert dh1.as_dict() == dh3.as_dict()
+    assert dh1._data == dh3._data
+    assert dh1.current_timepoint + 1 == dh3.current_timepoint
+
+
+def test_DictWithHistory_in_dict_differences(supply_DictWithHistory_simple):
+    """
+    Test DictWithHistory in dict_differences, which should interpret DHS as a dictionary of its most recent data
+    """
+    # Test Explicit timepointing
+    dh1 = supply_DictWithHistory_simple.get()
+    dh2 = supply_DictWithHistory_simple.get()
+    dh3 = supply_DictWithHistory_simple.get()
+
+    # for dh in [dh1, dh2, dh3]:
+    #     dh['a'] = 1.0
+    #     dh['b'] = 2.0
+    #     dh['c'] = 3.0
+    #     dh.increment_timepoint()
+    #     dh['b'] = 2.0  # Shouldn't update anything
+    #     dh['c'] = 3.1  # Should update timepoint
+
+    assert dh1.as_dict() == dh2.as_dict()
+
+    dh2.increment_timepoint()
+    dh2['c'] = 3.2
+    assert dh1.as_dict() != dh2.as_dict()
+
+    dh3['c'] = 1000.0
+    assert dh1.as_dict() != dh3.as_dict()
+
+
+@pytest.fixture
 def supply_generalIterationData():
     columns = ['iteration', 'time', 'delta_max']
     n_data = 5

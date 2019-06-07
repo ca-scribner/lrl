@@ -293,16 +293,17 @@ class DictWithHistory(MutableMapping):
         if key not in self._data:
             self._data[key] = [(self.current_timepoint, type(value)(0.0))]
             # print(f"Initializing self._data[{key}]={self._data[key][-1]}")
-
-        # If value is close to the most recent entry, do nothing
-        if not np.isclose(self._data[key][-1][1], value):
-            # If value if not close to the most recent entry...
-            if self._data[key][-1][0] == self.current_timepoint:
-                # ...but we already have an entry for the current timepoint, replace it with value
-                self._data[key][-1] = (self.current_timepoint, value)
-            else:
-                # ...and there is no entry for the current timepoint, append one
-                self._data[key].append((self.current_timepoint, value))
+        else:
+            # If value is close to the most recent entry, do nothing will apply to a single numeric or an array of
+            # numerics
+            if not np.all(np.isclose(self._data[key][-1][1], value)):
+                # If value if not close to the most recent entry...
+                if self._data[key][-1][0] == self.current_timepoint:
+                    # ...but we already have an entry for the current timepoint, replace it with value
+                    self._data[key][-1] = (self.current_timepoint, value)
+                else:
+                    # ...and there is no entry for the current timepoint, append one
+                    self._data[key].append((self.current_timepoint, value))
 
         if self.timepoint_mode == 'implicit':
             self.increment_timepoint()
@@ -368,6 +369,35 @@ class DictWithHistory(MutableMapping):
                     # Key did not exist in the past timepoint.  Skipping
                     pass
         return data
+
+    def update(self, d):
+        """
+        Update this instance with a dictionary of data, d (similar to dict.update())
+
+        Keys in d that are present in this object overwrite the previous value.  Keys in d that are missing in this
+        object are added.
+
+        All data written from d is given the same timepoint (even if timepoint_mode=implicit) - the addition is treated
+        as a single update to the object rather than a series of updates.
+
+        Args:
+            d (dict): Dictionary of data to be added here
+
+        Returns:
+            None
+        """
+        # Override the timepoint mode temporarily if necessary.
+        timepoint_mode_cache = None
+        if self.timepoint_mode == 'implicit':
+            timepoint_mode_cache = self.timepoint_mode
+            self.timepoint_mode = 'explicit'
+
+        for k, val in d.items():
+            self[k] = val
+
+        if timepoint_mode_cache:
+            self.timepoint_mode = timepoint_mode_cache
+            self.increment_timepoint()
 
     def increment_timepoint(self):
         """
