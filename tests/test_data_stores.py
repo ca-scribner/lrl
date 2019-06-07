@@ -267,6 +267,51 @@ def test_DictWithHistory_in_dict_differences(supply_DictWithHistory_simple):
     assert dh1.as_dict() != dh3.as_dict()
 
 
+def test_DictWithHistory_tuple():
+    dh1 = DictWithHistory()
+    dh2 = DictWithHistory()
+    dh3 = DictWithHistory()
+    dh4 = DictWithHistory()
+
+    for dh in [dh1, dh2, dh3, dh4]:
+        dh['a'] = (0, 1, 2.5)
+        dh['b'] = (10, 11, 12.5)
+
+    assert dh1.as_dict(timepoint=0) == dh2.as_dict(timepoint=0)
+
+    # This update should be noticed as a duplicate and no change made to dh2
+    dh2.increment_timepoint()
+    dh2['a'] = (0, 1, 2.5)
+
+    assert dh1.current_timepoint != dh2.current_timepoint  # Check timepoints are different just in case
+    assert dh1.as_dict(timepoint=0) == dh2.as_dict(timepoint=0)
+
+    # This update should be too small of a change to notice
+    dh2['a'] = (0, 1, 2.5 + 1e-08)
+    assert dh1.as_dict(timepoint=0) == dh2.as_dict(timepoint=0)
+    assert dh1._data == dh2._data
+
+    # This should actually be a change.  as_dict(timepoint=-0) wont show it, but as_dict(timepoint=-1) will
+    dh2['a'] = (0, 1, 3.5)
+    assert dh1.as_dict(timepoint=0) == dh2.as_dict(timepoint=0)
+    assert dh1.as_dict(timepoint=-1) != dh2.as_dict(timepoint=-1)
+
+    # This change is a different structure of data entirely - definitely a change
+    dh2['a'] = [10000, 20000]
+    assert dh1.as_dict() != dh2.as_dict()
+
+    # Non-numeric shouldn't break everything, but will definitely show as a change!
+    dh3['a'] = "not_a_number"
+    assert dh1.as_dict() != dh3.as_dict()
+
+    dh4['a'] = "not_a_number"
+    dh4.increment_timepoint()
+    # This should not change things, either in the outward dict or in the backend
+    dh4['a'] = "not_a_number"
+    assert dh3.as_dict() == dh4.as_dict()
+    assert dh3._data == dh4._data
+
+
 @pytest.fixture
 def supply_generalIterationData():
     columns = ['iteration', 'time', 'delta_max']

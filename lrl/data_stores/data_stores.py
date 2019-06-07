@@ -291,12 +291,22 @@ class DictWithHistory(MutableMapping):
 
     def __setitem__(self, key, value):
         if key not in self._data:
-            self._data[key] = [(self.current_timepoint, type(value)(0.0))]
-            # print(f"Initializing self._data[{key}]={self._data[key][-1]}")
+            self._data[key] = [(self.current_timepoint, value)]
         else:
             # If value is close to the most recent entry, do nothing will apply to a single numeric or an array of
             # numerics
-            if not np.all(np.isclose(self._data[key][-1][1], value)):
+            matches = False
+            if self._data[key][-1][1] == value:
+                matches = True
+            else:
+                try:
+                    matches = np.all(np.isclose(self._data[key][-1][1], value))
+                except (ValueError, TypeError):
+                    # ValueError in np.all means the values we're comparing dont broadcast together (might have different
+                    # sizes, etc), so they don't match.
+                    # TypeError means they're not easily coerced into the same type, so that's even more different...
+                    pass
+            if not matches:
                 # If value if not close to the most recent entry...
                 if self._data[key][-1][0] == self.current_timepoint:
                     # ...but we already have an entry for the current timepoint, replace it with value
