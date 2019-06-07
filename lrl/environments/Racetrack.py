@@ -29,8 +29,8 @@ TRACKS = {
     ],
     '5x4_basic': [
         "WWWWW",
-        "W  FW",
-        "WS  W",
+        "W   W",
+        "WSWFW",
         "WWWWW",
     ],
     '10x10': [
