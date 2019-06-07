@@ -133,24 +133,30 @@ class BaseSolver:
         except AttributeError:
             raise AttributeError("Iteration Data has no converged entry - cannot determine convergence status")
 
-    def run_policy(self, max_steps=1000):
+    def run_policy(self, max_steps=1000, initial_state=None):
         """
         Perform a walk through the environment using the current policy
 
-        FUTURE: Change to allow input of initial state, which then uses that as the start rather than calling env.reset
-
         Side Effects:
-            self.env will be reset
+            self.env will be reset and optionally then forced into initial_state
 
         Args:
             max_steps: Maximum number of steps to be taken in the walk (step 0 is taken to be entering initial state)
+            initial_state: State for the environment to be placed in to start the walk (used to force a deterministic
+                           start from anywhere in the environment rather than the typical start position)
 
         Returns:
             list of states encountered in the walk (including initial and final states)
             list of rewards obtained during the walk (rewards[0] == 0 as step 0 is simply starting the game)
             boolean indicating if the walk was terminal according to the environment
         """
-        states = [self.env.reset()]
+        self.env.reset()
+        if initial_state:
+            # Override starting state
+            self.env.s = initial_state
+        states = [self.env.s]
+        #
+        # states = [self.env.reset()]
         rewards = [0.0]
         terminal = False
 
@@ -162,7 +168,7 @@ class BaseSolver:
             logger.debug(f"Arrived in {new_state}, receiving reward {reward}")
 
             states.append(new_state)
-            rewards.append(reward)
+            rewards.append(float(reward))
 
             if terminal:
                 break
@@ -170,7 +176,7 @@ class BaseSolver:
         logger.debug(f"Walk completed in {len(states)} steps (terminal={terminal}), receiving total reward of {sum(rewards)}")
         return states, rewards, terminal
 
-    def score_policy(self, iters=10, max_steps=1000):
+    def score_policy(self, iters=10, max_steps=1000, initial_state=None):
         """
         Score the current policy by performing 'iters' greedy walks through the environment and returning statistics
 
@@ -180,6 +186,8 @@ class BaseSolver:
         Args:
             iters: Number of walks through the environment
             max_steps: Maximum number of steps allowed per walk
+            initial_state: State for the environment to be placed in to start the walk (used to force a deterministic
+                           start from anywhere in the environment rather than the typical start position)
 
         Returns:
             WalkStatistics: Object containing statistics about the walks (rewards, number of steps, etc.)
@@ -189,7 +197,7 @@ class BaseSolver:
 
         for iter in range(iters):
             # Walk through the environment following the current policy, up to max_steps total steps
-            states, rewards, terminal = self.run_policy(max_steps=max_steps)
+            states, rewards, terminal = self.run_policy(max_steps=max_steps, initial_state=initial_state)
             statistics.add(reward=sum(rewards), walk=states, terminal=terminal)
             logger.info(f"Policy scored {statistics.rewards[-1]} in {len(states)} steps (terminal={terminal})")
 
