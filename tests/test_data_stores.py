@@ -17,6 +17,7 @@ def supply_ws_data():
             (3, [(0, 0), (5, 0), (10, 0)], False),
             (12, [(1, 1), (3, 3)], True), ]
 
+
 @pytest.fixture
 def ws_sample(supply_ws_data):
     ws = WalkStatistics()
@@ -181,3 +182,32 @@ def test_DictWithHistory():
     dh[0] = 10.0
     assert dh._data[0] == [(0, pytest.approx(0.0)), (5, pytest.approx(10.0))]
     assert dh[0] == pytest.approx(10.0)
+
+
+@pytest.fixture
+def supply_generalIterationData():
+    columns = ['iteration', 'time', 'delta_max']
+    n_data = 5
+    data = [{'iteration': i,
+             'time': 10.0 + i,
+             'delta_max': 100.0 + i}
+            for i in range(n_data)]
+    return columns, data
+
+
+def test_GeneralIterationData(supply_generalIterationData):
+    columns, data = supply_generalIterationData
+    gid = GeneralIterationData(columns=columns)
+    for i in range(len(data)):
+        gid.add(data[i])
+
+    # Test basic ingestion
+    for i in range(len(data)):
+        for column in columns:
+            assert gid.get(i)[column] == pytest.approx(data[i][column])
+
+    # Test using a subset of data just for a second opinion
+    gid2 = GeneralIterationData()
+    gid2.add(data[1])
+
+    assert gid2.get(0)[columns[2]] == pytest.approx(data[1][columns[2]])
