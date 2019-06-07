@@ -6,7 +6,7 @@ from gym.envs.toy_text import discrete
 RACETRACK_DEFAULT_REWARDS = {
     'crash': -100,
     'time': -1,
-    'finish': 100,
+    'goal': 100,
 }
 
 
@@ -15,7 +15,7 @@ CHAR_MAP = {
     "W": {'start_prob': 0., 'reward': RACETRACK_DEFAULT_REWARDS['crash'], 'terminal': True, 'color': 'forestgreen'},
     "S": {'start_prob': 1., 'reward': RACETRACK_DEFAULT_REWARDS['time'], 'terminal': False, 'color': 'dodgerblue'},
     " ": {'start_prob': 0., 'reward': RACETRACK_DEFAULT_REWARDS['time'], 'terminal': False, 'color': 'darkgray'},
-    "F": {'start_prob': 0., 'reward': RACETRACK_DEFAULT_REWARDS['finish'], 'terminal': True, 'color': 'gold'},
+    "G": {'start_prob': 0., 'reward': RACETRACK_DEFAULT_REWARDS['goal'], 'terminal': True, 'color': 'gold'},
     "O": {'start_prob': 0., 'reward': RACETRACK_DEFAULT_REWARDS['time'], 'terminal': False, 'color': 'gray', 'chance_to_slip': 0.25}
 }
 
@@ -23,21 +23,21 @@ TRACKS = {
     # Naming as units_in_x x units_in_y
     '3x4_basic': [
         "WWW",
-        "WFW",
+        "WGW",
         "WSW",
         "WWW",
     ],
     '5x4_basic': [
         "WWWWW",
         "W   W",
-        "WSWFW",
+        "WSWGW",
         "WWWWW",
     ],
     '10x10': [
         "WWWWWWWWWW",
         "WWWWWWWWWW",
-        "WWW     FF",
-        "WWW     FF",
+        "WWW     GG",
+        "WWW     GG",
         "WW   WWWWW",
         "WW   WWWWW",
         "WW    WWWW",
@@ -48,7 +48,7 @@ TRACKS = {
     '10x10_basic': [
         "WWWWWWWWWW",
         "WWWWWWWWWW",
-        "WW     FWW",
+        "WW     GWW",
         "WW      WW",
         "WW      WW",
         "WW      WW",
@@ -60,7 +60,7 @@ TRACKS = {
     '15x15_basic': [
         "WWWWWWWWWWWWWW",
         "WWWWWWWWWWWWWW",
-        "WW         FWW",
+        "WW         GWW",
         "WW          WW",
         "WW          WW",
         "WW          WW",
@@ -77,7 +77,7 @@ TRACKS = {
     '20x20_basic': [
         "WWWWWWWWWWWWWWWWWWWW",
         "WWWWWWWWWWWWWWWWWWWW",
-        "WW               FWW",
+        "WW               GWW",
         "WW                WW",
         "WW                WW",
         "WW                WW",
@@ -99,7 +99,7 @@ TRACKS = {
     '20x20_all_oil': [
         "WWWWWWWWWWWWWWWWWWWW",
         "WWWWWWWWWWWWWWWWWWWW",
-        "WWOOOOOOOOOOOOOOOFWW",
+        "WWOOOOOOOOOOOOOOOGWW",
         "WWOOOOOOOOOOOOOOOOWW",
         "WWOOOOOOOOOOOOOOOOWW",
         "WWOOOOOOOOOOOOOOOOWW",
@@ -121,7 +121,7 @@ TRACKS = {
     '30x30_basic': [
         "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWW",
         "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWW",
-        "WW                         FWW",
+        "WW                         GWW",
         "WW                          WW",
         "WW                          WW",
         "WW                          WW",
@@ -159,8 +159,8 @@ TRACKS = {
         "WWOOOWWWWWWWWWWOOOWW",
         "WWOOOOWWWWWWWWOOOOWW",
         "WWOOOOOOSWWWWWOOOOWW",
-        "WWWWWWWWWWWWWWFFFFWW",
-        "WWWWWWWWWWWWWWFFFFWW",
+        "WWWWWWWWWWWWWWGGGGWW",
+        "WWWWWWWWWWWWWWGGGGWW",
     ],
     '20x10_U': [
         "WWWWWWWWWWWWWWWWWWWW",
@@ -171,14 +171,14 @@ TRACKS = {
         "WWOOOWWWWWWWWWWOOOWW",
         "WW    WWWWWWWW    WW",
         "WW      SWWWWW    WW",
-        "WWWWWWWWWWWWWWFFFFWW",
-        "WWWWWWWWWWWWWWFFFFWW",
+        "WWWWWWWWWWWWWWGGGGWW",
+        "WWWWWWWWWWWWWWGGGGWW",
     ],
     '10x10_oil': [
         "WWWWWWWWWW",
         "WWWWWWWWWW",
-        "WWW   OOFF",
-        "WWW     FF",
+        "WWW   OOGG",
+        "WWW     GG",
         "WW   WWWWW",
         "WW   WWWWW",
         "WW    WWWW",
@@ -199,7 +199,7 @@ TRACKS = {
         "WW WWWWWWWWWWWWWW WW",
         "WW WWWWWOOOOWWWWW WW",
         "WWW WWWOWWWWOWWW WWW",
-        "WWWW  SWWWWWWF  WWWW",
+        "WWWW  SWWWWWWG  WWWW",
         "WWWWWWWWWWWWWWWWWWWW",
         "WWWWWWWWWWWWWWWWWWWW",
     ]
@@ -396,7 +396,7 @@ def track_to_p_matrix(track, char_map=CHAR_MAP, x_vel_limits=None, y_vel_limits=
            0 velocity
            FUTURE: Add velocity to start
         " " (single space): Open track with small negative reward
-        F: Finish location with reward
+        G: Goal location with reward
     Rewards and terminal status are assessed based on someone ENTERING that state (eg: if you travel from a starting
     location to a wall, you get the wall's reward and terminal status)
 
