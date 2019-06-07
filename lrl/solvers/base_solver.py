@@ -1,6 +1,6 @@
 import numpy as np
 
-from lrl.data_stores import GeneralIterationData, WalkStatistics
+from lrl.data_stores import GeneralIterationData, WalkStatistics, DictWithHistory
 
 import logging
 logger = logging.getLogger(__name__)
@@ -30,7 +30,10 @@ class BaseSolver:
         self.policy_init_type = None
         self.policy = None
         self.init_policy(init_type=policy_init_type)
-        self.value = {k: value_function_initial_value for k in self.env.P.keys()}
+
+        self.value = DictWithHistory(timepoint_mode='explicit')
+        for k in self.env.P.keys():
+            self.value[k] = value_function_initial_value
 
         # Storage for iteration metadata
         self.iteration = 0
@@ -38,7 +41,7 @@ class BaseSolver:
 
     def init_policy(self, init_type=None):
         """
-        Initialize self.policy
+        Initialize self.policy, which is a dictionary-like DictWithHistory object for storing current and past policies
 
         Args:
             init_type: Type of initialization.  If defined, will store to self.policy_init_type.  Can be any of:
@@ -67,16 +70,20 @@ class BaseSolver:
             # If env.index_to_state does not exist, we will index by integer
             pass
 
+        self.policy = DictWithHistory(timepoint_mode='explicit')
         if self.policy_init_type == 'zeros':
-            self.policy = {k: 0 for k in state_keys}
+            for k in state_keys:
+                self.policy[k] = 0
         elif self.policy_init_type == 'random':
-            self.policy = {k: self.env.action_space.sample() for k in state_keys}
+            for k in state_keys:
+                self.policy[k] = self.env.action_space.sample()
 
         # Try to convert index actions to their full representation, if used by env
         try:
-            self.policy = {k: self.env.index_to_action[i_a] for k, i_a in self.policy.items()}
+            for k in self.policy:
+                self.policy[k] = self.env.index_to_action[self.policy[k]]
         except AttributeError:
-            pass
+            raise NotImplementedError("Test to make sure this works..., then make this a pass if catching right error")
 
     def iterate(self):
         """

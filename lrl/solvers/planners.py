@@ -35,7 +35,7 @@ class ValueIteration(BaseSolver):
         """
         timer = Timer()
 
-        value_new, policy_new = policy_evaluation(value_function=self.value, env=self.env, gamma=self.gamma,
+        value_new, policy_new = policy_evaluation(value_function=self.value.as_dict(), env=self.env, gamma=self.gamma,
                                                   evaluation_type='max', max_iters=1)
 
         delta_max, delta_mean = dict_differences(value_new, self.value)
@@ -51,8 +51,10 @@ class ValueIteration(BaseSolver):
                                  })
 
         # Store results and increment counter
-        self.value = value_new
-        self.policy = policy_new
+        self.value.update(value_new)
+        self.value.increment_timepoint()
+        self.policy.update(policy_new)
+        self.policy.increment_timepoint()
         self.iteration += 1
 
 
@@ -83,12 +85,13 @@ class PolicyIteration(BaseSolver):
         """
         if max_iters is None:
             max_iters = self.max_policy_eval_iters_per_improvement
-        value_new = policy_evaluation(value_function=self.value, env=self.env, policy=self.policy, gamma=self.gamma,
+        value_new = policy_evaluation(value_function=self.value.as_dict(), env=self.env, policy=self.policy, gamma=self.gamma,
                                       evaluation_type=self.policy_evaluation_type,
                                       tolerance=self.value_function_tolerance,
                                       max_iters=max_iters)
 
-        self.value = value_new
+        self.value.update(value_new)
+        self.value.increment_timepoint()
 
     def _policy_improvement(self, return_differences=True):
         """
@@ -103,7 +106,7 @@ class PolicyIteration(BaseSolver):
         Returns:
             int: (if return_differences==True) Number of differences between the old and new policies
         """
-        value_new, policy_new = policy_evaluation(value_function=self.value, env=self.env,
+        value_new, policy_new = policy_evaluation(value_function=self.value.as_dict(), env=self.env,
                                                   gamma=self.gamma, evaluation_type='max')
 
         if return_differences:
@@ -111,7 +114,8 @@ class PolicyIteration(BaseSolver):
         else:
             returned = None
 
-        self.policy = policy_new
+        self.policy.update(policy_new)
+        self.policy.increment_timepoint()
         return returned
 
     def iterate(self):
@@ -130,7 +134,7 @@ class PolicyIteration(BaseSolver):
         timer = Timer()
 
         logger.debug(f"Performing iteration {self.iteration} of policy iteration")
-        value_old = self.value
+        value_old = self.value.as_dict()
 
         # Compute a value function for the current policy
         self._policy_evaluation()
