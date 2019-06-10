@@ -482,8 +482,13 @@ def track_to_p_matrix(track, char_map=CHAR_MAP, x_vel_limits=None, y_vel_limits=
                             next_state = (next_x, next_y, next_x_vel, next_y_vel)
 
                             # Get reward associated with entering next state, and decide if this action is terminal
-                            reward = char_map[track[next_r][next_c]]['reward']
-                            terminal = char_map[track[next_r][next_c]]['terminal']
+                            try:
+                                reward = char_map[track[next_r][next_c]]['reward']
+                                terminal = char_map[track[next_r][next_c]]['terminal']
+                            except IndexError:
+                                raise IndexError("Caught IndexError while building Racetrack.  Likely cause is a "
+                                                 "max velocity that is creater than the wall padding around the track "
+                                                 "(leading to a car that can exit the track entirely)")
 
                             # Define probabilistic results of this action
                             if track[i_row][i_col] == 'O':
