@@ -152,9 +152,7 @@ def plot_policy(env, policy, ax=None, color='k', add_env_to_plot=False, size='au
         # Determine an appropriate font size for the policy text based on the longest policy to be printed
         f_char_len = lambda x: len(str(x))
         vectorized = np.vectorize(f_char_len)
-        print(f'max size = {np.max(vectorized(policy))}')
         size = choose_text_size(np.max(vectorized(policy)))
-        print(f'printing everything with size = {size}')
 
     for row in range(rows):
         for col in range(cols):
