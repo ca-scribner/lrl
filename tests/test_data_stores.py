@@ -100,7 +100,6 @@ def test_DictWithHistory():
         dh[k] = float(x * 100)
 
     # Test if everything has right value with timepoint == 0
-    print(dh._data)
     for i in range(n_tests):
         # Both direct access and using getter should be the same (although getter returns only value)
         assert dh._data[i] == [(0, pytest.approx(float(i * 100)))]
@@ -123,8 +122,6 @@ def test_DictWithHistory():
     # This should result in no change, because the value in here is already 100.0 (so timepoint 2 should not exist for key 0 when we test below)
     dh[1] = 100.0
 
-    print(dh._data)
-
     assert dh._data[0] == [(0, pytest.approx(10.0)), (2, pytest.approx(2.0))]
     assert dh._data[1] == [(0, pytest.approx(100.0))]
     assert dh._data[3] == [(0, pytest.approx(300.0)), (1, pytest.approx(311.0)), (2, pytest.approx(302.0))]
@@ -139,8 +136,7 @@ def test_DictWithHistory():
 
     # Should raise IndexError (timepoint does not exist)
     with pytest.raises(KeyError):
-        print(f"printing: {dh.get_value_at_timepoint(5, 0)}")
-        assert dh.get_value_at_timepoint(1, 2)
+        assert dh.get_value_at_timepoint(5, 0)
 
     # Test if as_dict writes out the given timepoint's values as a dictionary
     # Initial timepoint data
@@ -171,7 +167,6 @@ def test_DictWithHistory():
         dh[k] = float(x * 100 + x)
 
     # Test if everything has right value with first assignments
-    print(dh._data)
     for i in range(n_tests):
         # Both direct access and using getter should be the same (although getter returns only value)
         assert dh._data[i] == [(i, pytest.approx(float(i * 100 + i)))]
@@ -192,7 +187,8 @@ def supply_DictWithHistory_simple():
         A factory that generates simple DictWithHistory instances
     """
     class Factory:
-        def get(self):
+        @staticmethod
+        def get():
             dh = DictWithHistory(timepoint_mode='explicit')
             dh['a'] = 1.0
             dh['b'] = 2.0
