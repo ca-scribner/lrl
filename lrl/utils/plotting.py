@@ -108,19 +108,46 @@ def plot_env(env, ax=None, edgecolor='k', resize_figure=True):
     return ax
 
 
-def plot_policies(env, policies, **kwargs):
+def plot_policies(env, policy_dict, **kwargs):
     """
-    TODO: Docstring.  Must handle things like file naming if using savefig (savefig_extra-state?)
+    Plot all policies for env given by a dictionary of policies.
+
+    Attempts to handle cases where state is described by tuples of more than just (x, y) coordinates and break them into
+    plots named by their additional state (eg: if we have (x, y, velocity) where velocity==[0, 1], we generate a policy
+    plot for velocity == 0 and another for velocity == 1
+
+    FUTURE: savefig
 
     Args:
-        env:
-        policies:
-        **kwargs:
+        env: Augmented OpenAI Gym-like environment object
+        policy_dict (dict): Dictionary of policy for the environment, keyed by integer state-index or tuples of state
+        **kwargs (dict): Other arguments passed to plot_policy
 
     Returns:
 
     """
-    raise NotImplementedError()
+    # policy_dict is a dictionary relating state to policy at that state, but can be in one of several forms.
+    # The dictionary can be keyed by state-index or a tuple of state (eg: (x, y, [other_state]), with x=0 in left
+    # column, y=0 in bottom row)
+    # If using tuples of state, state may be more than just x,y location as shown above, eg: (x, y, v_x, v_y).  If
+    # len(state_tuple) > 2, we must plot each additional state separately.
+    #
+    # Translate policy_dict into a policy_list_of_tuples of:
+    #   [(other_state_0, array_of_policy_at_other_state_0),
+    #    (other_state_1, array_of_policy_at_other_state_1),
+    #   ... ]
+    # where the array_of_policy_at_other_state_* is in the same shape as env.desc (eg: cell [3, 2] of the array is the
+    # policy for the env.desc[3, 2] location in the env).
+    #
+    # More description of this is covered in the helper function's documentation
+    policy_list_of_tuples = policy_dict_to_array(env, policy_dict)
+
+    returned_axes = [None] * len(policy_list_of_tuples)
+
+    for i, policy_tuple in enumerate(policy_list_of_tuples):
+        returned_axes[i] = plot_policy(env, policy_tuple[1], add_env_to_plot=True, title=policy_tuple[0], **kwargs)
+
+    return returned_axes
 
 
 def plot_policy(env, policy, ax=None, color='k', add_env_to_plot=False, size='auto', title=None):
