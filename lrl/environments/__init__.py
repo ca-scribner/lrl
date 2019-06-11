@@ -21,7 +21,7 @@ RACETRACK_TRACK_DEFAULT = '10x10'
 
 
 # __all__ = ['RewardingFrozenLakeEnv', 'WindyCliffWalkingEnv', 'Racetrack']
-__all__ = ['Racetrack']
+__all__ = ['Racetrack', 'frozen_lake']
 
 # register(
 #     id='RewardingFrozenLake4x4-v0',

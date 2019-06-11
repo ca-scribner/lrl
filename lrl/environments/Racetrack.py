@@ -13,7 +13,7 @@ RACETRACK_DEFAULT_REWARDS = {
 # Character map for the map characters (say that 10 times fast!)
 CHAR_MAP = {
     "W": {'start_prob': 0., 'reward': RACETRACK_DEFAULT_REWARDS['crash'], 'terminal': True, 'color': 'forestgreen'},
-    "S": {'start_prob': 1., 'reward': RACETRACK_DEFAULT_REWARDS['time'], 'terminal': False, 'color': 'dodgerblue'},
+    "S": {'start_prob': 1., 'reward': RACETRACK_DEFAULT_REWARDS['time'], 'terminal': False, 'color': 'lightgreen'},
     " ": {'start_prob': 0., 'reward': RACETRACK_DEFAULT_REWARDS['time'], 'terminal': False, 'color': 'darkgray'},
     "G": {'start_prob': 0., 'reward': RACETRACK_DEFAULT_REWARDS['goal'], 'terminal': True, 'color': 'gold'},
     "O": {'start_prob': 0., 'reward': RACETRACK_DEFAULT_REWARDS['time'], 'terminal': False, 'color': 'gray', 'chance_to_slip': 0.25}
@@ -54,6 +54,18 @@ TRACKS = {
         "WW      WW",
         "WW      WW",
         "WWS     WW",
+        "WWWWWWWWWW",
+        "WWWWWWWWWW",
+    ],
+    '10x10_all_oil': [
+        "WWWWWWWWWW",
+        "WWWWWWWWWW",
+        "WWOOOOOGWW",
+        "WWOOOOOOWW",
+        "WWOOOOOOWW",
+        "WWOOOOOOWW",
+        "WWOOOOOOWW",
+        "WWSOOOOOWW",
         "WWWWWWWWWW",
         "WWWWWWWWWW",
     ],
@@ -237,7 +249,7 @@ class Racetrack(discrete.DiscreteEnv):
 
         self.verbose = verbose
 
-        self._colors = {k.encode(): char_map[k]['color'] for k in char_map}
+        self.color_map = {k.encode(): char_map[k]['color'] for k in char_map}
 
         n_states, n_actions, p, starting_probability, action_map, terminal_locations = \
             track_to_p_matrix(track=self.track, char_map=self.char_map,
@@ -301,9 +313,6 @@ class Racetrack(discrete.DiscreteEnv):
                          x_vel_limits=self.x_vel_limits, y_vel_limits=self.y_vel_limits,
                          x_accel_limits=self.x_accel_limits, y_accel_limits=self.y_accel_limits,
                          max_total_accel=self.max_total_accel, seed=None, verbose=self.verbose)
-
-    def colors(self):
-        return self._colors
 
     def directions(self):
         return self.index_to_action
