@@ -1,10 +1,7 @@
-import numpy as np
-
 from lrl.data_stores import GeneralIterationData, WalkStatistics, DictWithHistory
 
 import logging
 logger = logging.getLogger(__name__)
-# logger.setLevel(logging.DEBUG)
 
 CONVERGENCE_TOLERANCE = 0.000001
 MAX_ITERATIONS = 50
@@ -83,7 +80,8 @@ class BaseSolver:
             for k in self.policy:
                 self.policy[k] = self.env.index_to_action[self.policy[k]]
         except AttributeError:
-            raise NotImplementedError("Test to make sure this works..., then make this a pass if catching right error")
+            # If .index_to_action isn't there, keep policy as indices
+            pass
 
     def iterate(self):
         """
@@ -168,11 +166,9 @@ class BaseSolver:
         terminal = False
 
         for step in range(1, max_steps + 1):
-            logger.debug(f"Starting step {step} from {states[-1]}")
             action = self.policy[states[-1]]
-            logger.debug(f"Taking action {action}")
             new_state, reward, terminal, _ = self.env.step(action)
-            logger.debug(f"Arrived in {new_state}, receiving reward {reward}")
+            logger.debug(f"Step {step}: From s={states[-1]} take a={action} --> s_prime={new_state} with r={reward}")
 
             states.append(new_state)
             rewards.append(float(reward))
