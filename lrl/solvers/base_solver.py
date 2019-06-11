@@ -59,13 +59,14 @@ class BaseSolver:
         else:
             raise ValueError(f"Invalid init_type {init_type} - must be one of {valid_init_types}")
 
+        # Index by whatever the environment indexes by (could be integers or some other object).
+        # First try indexing by integers, but if that breaks try to promote those to states
         state_keys = range(self.env.observation_space.n)
-        # If state is indexed by something other than integer, convert to that
         try:
-            state_keys = [self.env.index_to_state[k] for k in state_keys]
-        except AttributeError:
-            # If env.index_to_state does not exist, we will index by integer
-            pass
+            _ = self.env.P[state_keys[0]]
+        except KeyError:
+            state_keys = self.env.index_to_state[:]
+            _ = self.env.P[state_keys[0]]
 
         self.policy = DictWithHistory(timepoint_mode='explicit')
         if self.policy_init_type == 'zeros':

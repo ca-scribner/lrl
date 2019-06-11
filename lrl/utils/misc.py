@@ -81,3 +81,29 @@ class Timer:
 
     def elapsed(self):
         return timer() - self.start
+
+
+def rc_to_xy(row, col, rows):
+    """
+    Convert from (row, col) coordinates (eg: numpy array) to (x, y) coordinates (bottom left = 0,0)
+
+   (x, y) convention:
+        (0,0) in bottom left
+        x +ve to the right
+        y +ve up
+    (row,col) convention:
+        (0,0) in top left
+        row +ve down
+        col +ve to the right
+
+    Args:
+        row: This row
+        col: This col
+        rows: Total rows
+
+    Returns:
+        tuple: int x, int y
+    """
+    x = col
+    y = rows - row - 1
+    return x, y

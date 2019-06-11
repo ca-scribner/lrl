@@ -1,11 +1,13 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
+from lrl.utils.misc import rc_to_xy
+
 import logging
 logger = logging.getLogger(__name__)
 
-# Plotting for BaseSolver objects and data
 
+# Plotting for BaseSolver objects and data
 def plot_solver_convergence(solver, **kwargs):
     """
     Convenience binding to plot convergence statistics for a set of solver objects.
@@ -150,7 +152,8 @@ def plot_policies(env, policy_dict, **kwargs):
     return returned_axes
 
 
-def plot_policy(env, policy, ax=None, color='k', add_env_to_plot=False, size='auto', title=None):
+def plot_policy(env, policy, ax=None, color='k', add_env_to_plot=False, size='auto', title=None,
+                hide_terminal_locations=True):
     """
     FUTURE: Add docstring
 
@@ -163,6 +166,8 @@ def plot_policy(env, policy, ax=None, color='k', add_env_to_plot=False, size='au
         color:
         add_env_to_plot:
         size: TODO: AUTO
+        hide_terminal_locations (bool): If True, all known terminal locations will have no text printed (as policy here
+                                        doesn't matter)
 
     Returns:
 
@@ -184,6 +189,15 @@ def plot_policy(env, policy, ax=None, color='k', add_env_to_plot=False, size='au
     for row in range(rows):
         for col in range(cols):
             x, y = rc_to_xy(row, col, rows)
+
+            if hide_terminal_locations:
+                try:
+                    # If we hide terminal locations and this is terminal, skip
+                    if env.is_location_terminal[(int(x), int(y))]:
+                        continue
+                except AttributeError:
+                    # environment does not have is_location_terminal.  Ignore request to hide
+                    pass
 
             # Get center of the current grid square
             x_center = x + 0.5
@@ -294,28 +308,6 @@ def policy_dict_to_array(env, policy_dict):
 
     return returned
 
-
-def rc_to_xy(row, col, rows):
-    """
-    Convert from (row, col) coordinates (eg: numpy array) to (x, y) coordinates (bottom left = 0,0)
-
-    Convention:
-      rows: top row is row=0
-      cols: left col is col=0
-      x: left col is x=0
-      y: bot row is y=0
-
-    Args:
-        row:
-        col:
-        rows:
-
-    Returns:
-        tuple: int x, int y
-    """
-    x = col
-    y = rows - row - 1
-    return x, y
 
 def get_ax(ax):
     if ax is None:
