@@ -20,8 +20,6 @@ def get_terminal_locations(env):
         # If state is not subscriptable, try to convert to a tuple
         is_terminal = {env.index_to_state[k]: True for k in env.P}
 
-    print(f'is_terminal = {is_terminal} (before updates)')
-
     # For all transitions, if non-terminal then set the corresponding is_terminal entry to False
     for state in env.P:
         for action in env.P[state]:
@@ -34,6 +32,4 @@ def get_terminal_locations(env):
                     except TypeError:
                         # If transition[1] is not subscriptable, try to convert index to state
                         is_terminal[env.index_to_state[transition[1]]] = False
-    print(f'is_terminal = {is_terminal} (after updates)')
-
     return is_terminal
