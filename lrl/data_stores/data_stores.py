@@ -357,7 +357,7 @@ class DictWithHistory(MutableMapping):
             raise KeyError(f'{key} is not a valid key at timepoint {timepoint}')
         return self._data[key][i_timepoint][1]
 
-    def as_dict(self, timepoint=-1):
+    def to_dict(self, timepoint=-1):
         """
         Return the state of the data at a given timepoint as a dict
 

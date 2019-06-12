@@ -138,7 +138,7 @@ def test_DictWithHistory():
     with pytest.raises(KeyError):
         assert dh.get_value_at_timepoint(5, 0)
 
-    # Test if as_dict writes out the given timepoint's values as a dictionary
+    # Test if to_dict writes out the given timepoint's values as a dictionary
     # Initial timepoint data
     original = {0: 10.0,
                 1: 100.0,
@@ -146,7 +146,7 @@ def test_DictWithHistory():
                 3: 300.0,
                 4: 400.0,
                 }
-    assert dh.as_dict(timepoint=0) == pytest.approx(original)
+    assert dh.to_dict(timepoint=0) == pytest.approx(original)
 
     # Most recent data (default)
     recent = {0: 2.0,
@@ -156,7 +156,7 @@ def test_DictWithHistory():
               4: 400.0,
               5: 501.0,
               }
-    assert dh.as_dict() == pytest.approx(recent)
+    assert dh.to_dict() == pytest.approx(recent)
 
     # Test implicit timepointing
     dh = DictWithHistory(timepoint_mode='implicit')
@@ -213,7 +213,7 @@ def test_DictWithHistory_update(supply_DictWithHistory_simple):
         dh1[k] = v
 
     dh2.update(d)
-    assert dh1.as_dict() == dh2.as_dict()
+    assert dh1.to_dict() == dh2.to_dict()
     assert dh1._data == dh2._data
     assert dh1.current_timepoint == dh2.current_timepoint
 
@@ -221,7 +221,7 @@ def test_DictWithHistory_update(supply_DictWithHistory_simple):
     # after update)
     dh3.timepoint_mode = 'implicit'
     dh3.update(d)
-    assert dh1.as_dict() == dh3.as_dict()
+    assert dh1.to_dict() == dh3.to_dict()
     assert dh1._data == dh3._data
     assert dh1.current_timepoint + 1 == dh3.current_timepoint
 
@@ -231,7 +231,7 @@ def test_DictWithHistory_update(supply_DictWithHistory_simple):
         dh1[k] = v
 
     dh3.update(d2)
-    assert dh1.as_dict() == dh3.as_dict()
+    assert dh1.to_dict() == dh3.to_dict()
     assert dh1._data == dh3._data
     assert dh1.current_timepoint + 1 == dh3.current_timepoint
 
@@ -253,14 +253,14 @@ def test_DictWithHistory_in_dict_differences(supply_DictWithHistory_simple):
     #     dh['b'] = 2.0  # Shouldn't update anything
     #     dh['c'] = 3.1  # Should update timepoint
 
-    assert dh1.as_dict() == dh2.as_dict()
+    assert dh1.to_dict() == dh2.to_dict()
 
     dh2.increment_timepoint()
     dh2['c'] = 3.2
-    assert dh1.as_dict() != dh2.as_dict()
+    assert dh1.to_dict() != dh2.to_dict()
 
     dh3['c'] = 1000.0
-    assert dh1.as_dict() != dh3.as_dict()
+    assert dh1.to_dict() != dh3.to_dict()
 
 
 def test_DictWithHistory_tuple():
@@ -273,38 +273,38 @@ def test_DictWithHistory_tuple():
         dh['a'] = (0, 1, 2.5)
         dh['b'] = (10, 11, 12.5)
 
-    assert dh1.as_dict(timepoint=0) == dh2.as_dict(timepoint=0)
+    assert dh1.to_dict(timepoint=0) == dh2.to_dict(timepoint=0)
 
     # This update should be noticed as a duplicate and no change made to dh2
     dh2.increment_timepoint()
     dh2['a'] = (0, 1, 2.5)
 
     assert dh1.current_timepoint != dh2.current_timepoint  # Check timepoints are different just in case
-    assert dh1.as_dict(timepoint=0) == dh2.as_dict(timepoint=0)
+    assert dh1.to_dict(timepoint=0) == dh2.to_dict(timepoint=0)
 
     # This update should be too small of a change to notice
     dh2['a'] = (0, 1, 2.5 + 1e-08)
-    assert dh1.as_dict(timepoint=0) == dh2.as_dict(timepoint=0)
+    assert dh1.to_dict(timepoint=0) == dh2.to_dict(timepoint=0)
     assert dh1._data == dh2._data
 
-    # This should actually be a change.  as_dict(timepoint=-0) wont show it, but as_dict(timepoint=-1) will
+    # This should actually be a change.  to_dict(timepoint=-0) wont show it, but to_dict(timepoint=-1) will
     dh2['a'] = (0, 1, 3.5)
-    assert dh1.as_dict(timepoint=0) == dh2.as_dict(timepoint=0)
-    assert dh1.as_dict(timepoint=-1) != dh2.as_dict(timepoint=-1)
+    assert dh1.to_dict(timepoint=0) == dh2.to_dict(timepoint=0)
+    assert dh1.to_dict(timepoint=-1) != dh2.to_dict(timepoint=-1)
 
     # This change is a different structure of data entirely - definitely a change
     dh2['a'] = [10000, 20000]
-    assert dh1.as_dict() != dh2.as_dict()
+    assert dh1.to_dict() != dh2.to_dict()
 
     # Non-numeric shouldn't break everything, but will definitely show as a change!
     dh3['a'] = "not_a_number"
-    assert dh1.as_dict() != dh3.as_dict()
+    assert dh1.to_dict() != dh3.to_dict()
 
     dh4['a'] = "not_a_number"
     dh4.increment_timepoint()
     # This should not change things, either in the outward dict or in the backend
     dh4['a'] = "not_a_number"
-    assert dh3.as_dict() == dh4.as_dict()
+    assert dh3.to_dict() == dh4.to_dict()
     assert dh3._data == dh4._data
 
 
