@@ -1,11 +1,15 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import csv
 
 from lrl.utils.misc import rc_to_xy
 
 import logging
 logger = logging.getLogger(__name__)
 
+# Default plot settings
+DEFAULT_PLOT_FORMAT = 'png'
+DEFAULT_PLOT_DPI = 150
 
 # Plotting for BaseSolver objects and data
 def plot_solver_convergence(solver, **kwargs):
@@ -63,7 +67,7 @@ def plot_solver_convergence_from_df(df, y='delta_max', y_label=None, x='iteratio
     return ax
 
 
-def plot_env(env, ax=None, edgecolor='k', resize_figure=True):
+def plot_env(env, ax=None, edgecolor='k', resize_figure=True, savefig=None):
     """
     FUTURE: Add docstring
 
@@ -74,7 +78,7 @@ def plot_env(env, ax=None, edgecolor='k', resize_figure=True):
         resize_figure: If true, resize the figure to:
          width  = 0.5 * n_cols inches
          height = 0.5 * n_rows inches
-
+        savefig:
     Returns:
 
     """
@@ -107,10 +111,14 @@ def plot_env(env, ax=None, edgecolor='k', resize_figure=True):
     ax.set_xlim(0, cols)
     ax.set_ylim(0, rows)
     fig.tight_layout()
+
+    if savefig:
+        ax.get_figure().savefig(f'{savefig}.{DEFAULT_PLOT_FORMAT}', format=DEFAULT_PLOT_FORMAT, dpi=DEFAULT_PLOT_DPI)
+
     return ax
 
 
-def plot_solver_results(env, solver=None, policy=None, value=None, **kwargs):
+def plot_solver_results(env, solver=None, policy=None, value=None, savefig=None, **kwargs):
     """
     Convenience function to plot results from a solver over the environment map
 
@@ -119,14 +127,14 @@ def plot_solver_results(env, solver=None, policy=None, value=None, **kwargs):
 
     See plot_result() for more info on generation of individual plots and additional arguments for color/precision.
 
-    FUTURE: savefig
-
     Args:
         env: Augmented OpenAI Gym-like environment object
         solver (BaseSolver): Solver object used to solve the environment
         policy (dict, DictWithHistory): Policy for the environment, keyed by integer state-index or tuples of state
         value (dict, DictWithHistory): Value function for the environment, keyed by integer state-index or tuples of
                                           state
+        savefig (str): If not None, save figures to this name.  For cases with multiple policies per grid square, this
+                       will be the suffix on the name (eg: for policy at Vx=1, Vy=2, we get name of savefig_1_2.png)
         **kwargs (dict): Other arguments passed to plot_policy
 
     Returns:
@@ -181,10 +189,20 @@ def plot_solver_results(env, solver=None, policy=None, value=None, **kwargs):
         axes_titles = returned_axes[:]
 
     for i in range(number_of_plots):
+        if savefig and axes_titles[i]:
+            # Add axes_title to savefig, if required.  Using csv/StringOP feels a bit clunky but it works nicely
+            this_sio = csv.StringIO()
+            csv_writer = csv.writer(this_sio, delimiter='_')
+            csv_writer.writerow(axes_titles[i])
+
+            this_savefig = f'{savefig}_{this_sio.getvalue().strip()}'
+        else:
+            this_savefig = savefig
+
         # Actual numpy array of policy/value are the second element of the list_of_tuples.  Title is the first (where
         # both titles should be the same)
         returned_axes[i] = plot_solver_result(env, policy_list_of_tuples[i][1], value_list_of_tuples[i][1],
-                                              title=axes_titles[i])
+                                              title=axes_titles[i], savefig=this_savefig)
 
 
 def plot_policy(env, policy, **kwargs):
@@ -198,7 +216,7 @@ def plot_value(env, value, **kwargs):
 
 
 def plot_solver_result(env, policy=None, value=None, ax=None, add_env_to_plot=True, hide_terminal_locations=True,
-                       color='k', title=None,
+                       color='k', title=None, savefig=None,
                        size_policy='auto',
                        size_value='auto', value_precision=2):
     """
@@ -217,6 +235,7 @@ def plot_solver_result(env, policy=None, value=None, ax=None, add_env_to_plot=Tr
                                         doesn't matter)
         color:
         title:
+        savefig:
         size_policy:
         size_value:
         value_precision:
@@ -288,6 +307,9 @@ def plot_solver_result(env, policy=None, value=None, ax=None, add_env_to_plot=Tr
 
     if title:
         ax.set_title(title)
+
+    if savefig:
+        ax.get_figure().savefig(f'{savefig}.{DEFAULT_PLOT_FORMAT}', format=DEFAULT_PLOT_FORMAT, dpi=DEFAULT_PLOT_DPI)
     return ax
 
 # FUTURE: Add a "format plot" function to handle all plot default formatting (xy lims, removing labels, subtitle, ...)
