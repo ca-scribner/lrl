@@ -110,92 +110,110 @@ def plot_env(env, ax=None, edgecolor='k', resize_figure=True):
     return ax
 
 
-def plot_policies(env, policy_dict, **kwargs):
+def plot_solver_results(env, policy=None, value=None, **kwargs):
     """
     Convenience function to plot all policies for an env given by a dictionary of policies.
 
-    See plot_policy_or_value() for more info on generation of individual plots
+    See plot_result() for more info on generation of individual plots and additional arguments for color/precision.
 
     FUTURE: savefig
 
     Args:
         env: Augmented OpenAI Gym-like environment object
-        policy_dict (dict): Dictionary of policy for the environment, keyed by integer state-index or tuples of state
+        policy (dict, DictWithHistory): Policy for the environment, keyed by integer state-index or tuples of state
+        value (dict, DictWithHistory): Value function for the environment, keyed by integer state-index or tuples of
+                                          state
         **kwargs (dict): Other arguments passed to plot_policy
 
     Returns:
         list of Matplotlib Axes for the plots
     """
-    # Convert policy_dict into a single policy array for each non-location state.  See policy_dict_to_array() for more
-    # information
-    policy_list_of_tuples = policy_dict_to_array(env, policy_dict)
+    # Break policy and value, which are dict-like containers mapping state->X, into a series of numpy arrays shaped the
+    # same as env.desc.  See policy_dict_to_array() for more information
+    # NOTE: This next section could have more rigorous detection of mismatching numbers of plots, etc., but that seemed
+    # like low value.  I think it will raise exceptions if things go wrong as coded now, but not rigorously tested
 
-    returned_axes = [None] * len(policy_list_of_tuples)
-    for i, policy_tuple in enumerate(policy_list_of_tuples):
-        returned_axes[i] = plot_policy(env, policy_tuple[1], add_env_to_plot=True, title=policy_tuple[0], **kwargs)
+    # Convert policy and value to their list of tuples, if they are specified, and count the number of plots
+    number_of_plots = 1
+    axes_titles = None
+    policy_list_of_tuples = None
+    value_list_of_tuples = None
 
-    return returned_axes
+    if policy is not None:
+        # Try to coerce into dict in case it isn't already
+        try:
+            policy = policy.to_dict()
+        except AttributeError:
+            pass
+        policy_list_of_tuples = policy_dict_to_array(env, policy)
+        number_of_plots = max(len(policy_list_of_tuples), number_of_plots)
+        axes_titles = [policy_list_of_tuples[i][0] for i in range(len(policy_list_of_tuples))]
+    if value is not None:
+        # Try to coerce into dict in case it isn't already
+        try:
+            value = value.to_dict()
+        except AttributeError:
+            pass
+        value_list_of_tuples = policy_dict_to_array(env, value)
+        number_of_plots = max(len(value_list_of_tuples), number_of_plots)
+        axes_titles = [policy_list_of_tuples[i][0] for i in range(len(value_list_of_tuples))]
 
+    # Apply default values to anything we don't have data for
+    if policy is None:
+        policy_list_of_tuples = [(None, None)] * number_of_plots
+    if value is None:
+        value_list_of_tuples = [(None, None)] * number_of_plots
 
-def plot_values(env, value_dict, **kwargs):
-    """
-    Convenience function to plot all value function values for an env given by a dictionary of values.
+    returned_axes = [None] * number_of_plots
+    if axes_titles is None:
+        axes_titles = returned_axes[:]
 
-    Works the same as plot_policies.  See plot_policy_or_value() for more info on generation of individual plots
-
-    FUTURE: savefig
-
-    Args:
-        env: Augmented OpenAI Gym-like environment object
-        value_dict (dict): Dictionary of policy for the environment, keyed by integer state-index or tuples of state
-        **kwargs (dict): Other arguments passed to plot_policy_or_value
-
-    Returns:
-        list of Matplotlib Axes for the plots
-    """
-    # Convert value_dict into a single policy array for each non-location state.  See policy_dict_to_array() for more
-    # information.  Note the function policy_dict_to_array can also handle a value_dict
-    value_list_of_tuples = policy_dict_to_array(env, value_dict)
-
-    returned_axes = [None] * len(value_list_of_tuples)
-    for i, value_tuple in enumerate(value_list_of_tuples):
-        returned_axes[i] = plot_value(env, value_tuple[1], add_env_to_plot=True, title=value_tuple[0], **kwargs)
-
-    return returned_axes
+    for i in range(number_of_plots):
+        # Actual numpy array of policy/value are the second element of the list_of_tuples.  Title is the first (where
+        # both titles should be the same)
+        returned_axes[i] = plot_solver_result(env, policy_list_of_tuples[i][1], value_list_of_tuples[i][1],
+                                              title=axes_titles[i])
 
 
 def plot_policy(env, policy, **kwargs):
     """Convenience binding for plot_policy_or_value().  See plot_policy_or_value for more detail"""
-    return plot_policy_or_value(env, policy=policy, **kwargs)
+    return plot_solver_result(env, policy=policy, **kwargs)
 
 
 def plot_value(env, value, **kwargs):
     """Convenience binding for plot_policy_or_value().  See plot_policy_or_value for more detail"""
-    return plot_policy_or_value(env, value=value, **kwargs)
+    return plot_solver_result(env, value=value, **kwargs)
 
 
-def plot_policy_or_value(env, policy=None, value=None, ax=None, color='k', add_env_to_plot=False, size='auto', title=None,
-                         hide_terminal_locations=True, value_precision=2):
+def plot_solver_result(env, policy=None, value=None, ax=None, add_env_to_plot=True, hide_terminal_locations=True,
+                       color='k', title=None,
+                       size_policy='auto',
+                       size_value='auto', value_precision=2):
     """
-    FUTURE: Add docstring
+    FUTURE: Add docstring.  Plot result for a single xy map using a numpy array of shaped policy and/or value
+
 
     Args:
         env:
         policy (np.array): Policy for each grid square in the environment, in the same shape as env.desc
                            For plotting environments where we have multiple states for a given grid square (eg for
                            Racetrack), call plot_policy for each given additional state (eg: for v=(0, 0), v=(1, 0), ..)
+        value:
         ax:
-        color:
         add_env_to_plot:
-        size: TODO: AUTO
         hide_terminal_locations (bool): If True, all known terminal locations will have no text printed (as policy here
                                         doesn't matter)
+        color:
+        title:
+        size_policy:
+        size_value:
+        value_precision:
 
     Returns:
-
+        Matplotlib Axes object
     """
-    if (policy is not None) and (value is not None) or not ((policy is not None) or (value is not None)):
-        raise ValueError("Invalid input.  Exactly one of policy and value may be specified")
+    if not ((policy is not None) or (value is not None)):
+        raise ValueError("Invalid input.  At least one of policy and value may be specified")
     fig, ax = get_ax(ax)
 
     if add_env_to_plot:
@@ -203,22 +221,25 @@ def plot_policy_or_value(env, policy=None, value=None, ax=None, color='k', add_e
 
     rows, cols = env.desc.shape
 
-    if size == 'auto':
-        if policy is not None:
-            # Determine an appropriate font size for the policy text based on the longest policy to be printed
-            f_char_len = lambda x: len(str(x))
-            vectorized = np.vectorize(f_char_len)
-            size = choose_text_size(np.max(vectorized(policy)))
-        elif value is not None:
-            print('in value')
-            # Determine an appropriate font size for the value text based on the longest value to be printed
-            print(value)
-            value = np.around(value, decimals=value_precision)
-            print(value)
-            f_char_len = lambda x: len(str(x))
-            vectorized = np.vectorize(f_char_len)
-            size = choose_text_size(np.max(vectorized(value)))
-            print(f"max len = {np.max(vectorized(value))}, size = {size}")
+    if size_policy == 'auto' and policy is not None:
+        # Determine an appropriate font size for the policy text based on the longest policy to be printed
+        f_char_len = lambda x: len(str(x))
+        vectorized = np.vectorize(f_char_len)
+        size_policy = choose_text_size(np.max(vectorized(policy)))
+
+    if size_value == 'auto' and value is not None:
+        # Determine an appropriate font size for the value text based on the longest value to be printed
+        value = np.around(value, decimals=value_precision)
+        f_char_len = lambda x: len(str(x))
+        vectorized = np.vectorize(f_char_len)
+        size_value = choose_text_size(np.max(vectorized(value)))
+
+    # If policy and value are both being plotted, offset them vertically so they don't overlap
+    policy_vertical_shift = 0.0
+    value_vertical_shift = 0.0
+    if policy is not None and value is not None:
+        value_vertical_shift = 0.25
+        policy_vertical_shift = -value_vertical_shift
 
     for row in range(rows):
         for col in range(cols):
@@ -245,14 +266,13 @@ def plot_policy_or_value(env, policy=None, value=None, ax=None, color='k', add_e
                     text = env.action_as_char[action]
                 except (AttributeError, KeyError):
                     text = str(action)
-            elif value is not None:
-                text = str(value[row, col])
-                print(f'value text = {text}')
-            else:
-                raise ValueError("Invalid input.  Exactly one of policy and value may be specified")
+                ax.text(x_center, y_center + policy_vertical_shift, text, weight='bold', size=size_policy,
+                        horizontalalignment='center', verticalalignment='center', color=color)
 
-            ax.text(x_center, y_center, text, weight='bold', size=size,
-                    horizontalalignment='center', verticalalignment='center', color=color)
+            if value is not None:
+                text = str(value[row, col])
+                ax.text(x_center, y_center + value_vertical_shift, text, weight='bold', size=size_value,
+                        horizontalalignment='center', verticalalignment='center', color=color)
 
     if title:
         ax.set_title(title)
@@ -370,7 +390,7 @@ def policy_dict_to_array(env, policy_dict):
         # policy_dict_by_state) then we likely have a policy_dict that is keyed by state index already
         for i in range(len(policy_dict)):
             policy_by_index[i] = policy_dict[i]
-    print(f'policy_by_index = {policy_by_index}')
+
     # Now reshape the array into numpy arrays of the same shape as the env.desc (environment map).  If
     # policy_shaped_array.shape[2] > 1 then we have additional non-xy-location state variables (eg: velocity in
     # Racetrack)
