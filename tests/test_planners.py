@@ -1,6 +1,8 @@
 import pytest
 import itertools
 
+from gym.envs.toy_text import frozen_lake
+
 from lrl.solvers.planners import PolicyIteration, ValueIteration
 from lrl import environments
 
@@ -132,3 +134,34 @@ def test_compare_planners_racetrack_param(supply_racetracks):
         if supply_racetracks.test_value:
             print('test_value!')
             assert planners[p1].value == pytest.approx(planners[p2].value)
+
+
+def test_policy_iteration_lake():
+    lake = frozen_lake.FrozenLakeEnv()
+
+    pi = PolicyIteration(lake)
+    pi.iterate_to_convergence()
+
+    # Spot test policy results
+    assert pi.policy[(1, 1, 0, 0)] == (0, 1)
+    assert pi.policy[(1, 1, -1, -1)] == (1, 1)
+    assert pi.policy[(1, 2, 0, 1)] == (1, -1)
+    assert pi.policy[(1, 2, 1, 1)] == (0, -1)
+    assert pi.policy[(3, 2, 1, 1)] == (-1, -1)
+    assert pi.policy[(3, 2, 0, 0)] == (0, -1)
+
+    # Test outcome of running best policy
+    states, rewards, terminal = pi.run_policy()
+    assert states == [(1, 1, 0, 0), (1, 2, 0, 1), (2, 2, 1, 0), (3, 1, 1, -1)]
+    assert rewards == pytest.approx([0.0, -1., -1., 100])
+    assert terminal is True
+
+    # Spot test a few values from the value function
+    assert pi.value[(1, 1, 0, 0)] == pytest.approx(79.1)
+    assert pi.value[(1, 2, 0, 1)] == pytest.approx(89.)
+    assert pi.value[(2, 2, 1, 0)] == pytest.approx(100.)
+
+    # Test run_policy() by scoring this policy iteratively, from standard initial and another state initial state
+    assert pi.score_policy(iters=3).get_statistic(statistic='reward_mean') == pytest.approx(98)
+    assert pi.score_policy(iters=3, initial_state=(1, 2, 0, 0)).get_statistic(statistic='reward_mean') == \
+           pytest.approx(99)
