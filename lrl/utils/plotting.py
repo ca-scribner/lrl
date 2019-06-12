@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 # Default plot settings
 DEFAULT_PLOT_FORMAT = 'png'
 DEFAULT_PLOT_DPI = 150
+MAX_PATHS_ON_EPISODE_PLOT = 100
 
 # Plotting for BaseSolver objects and data
 def plot_solver_convergence(solver, **kwargs):
@@ -125,7 +126,7 @@ def plot_solver_results(env, solver=None, policy=None, value=None, savefig=None,
     Input can be using a BaseSolver or child object, or by specifying policy and/or value directly via dict or
     DictWithHistory.
 
-    See plot_result() for more info on generation of individual plots and additional arguments for color/precision.
+    See plot_solver_result() for more info on generation of individual plots and additional arguments for color/precision.
 
     Args:
         env: Augmented OpenAI Gym-like environment object
@@ -245,6 +246,7 @@ def plot_solver_result(env, policy=None, value=None, ax=None, add_env_to_plot=Tr
     """
     if not add_env_to_plot and not ((policy is not None) or (value is not None)):
         raise ValueError("Invalid input.  Arguments passed give nothing to plot!")
+
     fig, ax = get_ax(ax)
 
     if add_env_to_plot:
@@ -313,6 +315,92 @@ def plot_solver_result(env, policy=None, value=None, ax=None, add_env_to_plot=Tr
     return ax
 
 # FUTURE: Add a "format plot" function to handle all plot default formatting (xy lims, removing labels, subtitle, ...)
+
+
+def plot_episodes(episodes, env=None, add_env_to_plot=False, max_episodes=MAX_PATHS_ON_EPISODE_PLOT,
+                  alpha=None, color ='k', title=None, ax=None):
+    """
+    FUTURE: docstring
+
+    Args:
+        episodes (list, WalkStatistics): Series of walks to be plotted.  If WalkStatistics instance, .walks will be
+                                      extracted
+        add_env_to_plot:
+        alpha:
+        color:
+        title:
+        ax:
+        max_episodes:
+
+    Returns:
+
+    """
+    # Attempt to extract walks from a WalkStatistics instance
+    try:
+        episodes = episodes.walks
+    except:
+        pass
+
+    fig, ax = get_ax(ax)
+
+    if add_env_to_plot:
+        ax = plot_env(env, ax=ax)
+
+    i_episodes = np.arange(len(episodes))
+    if len(episodes) > max_episodes:
+        i_episodes = np.random.choice(i_episodes, size=max_episodes, replace=False)
+
+    if alpha is None:
+        alpha = max(1.0 / len(i_episodes), 0.02)
+
+    for i_episode in i_episodes:
+        episode = episodes[i_episode]
+        ax = plot_episode(episode, env=env, add_env_to_plot=False, alpha=alpha, color=color, title=title, ax=ax)
+
+    return ax
+
+
+def plot_episode(episode, env, add_env_to_plot=False, alpha=None, color='k', title=None, ax=None):
+    """
+    FUTURE: Docstring
+
+    Args:
+        episode:
+        env:
+        add_env_to_plot:
+        alpha:
+        color:
+        title:
+        ax:
+
+    Returns:
+
+    """
+    fig, ax = get_ax(ax)
+
+    if add_env_to_plot:
+        ax = plot_env(env, ax=ax)
+
+    # Create path
+    x = np.zeros(len(episode))
+    y = np.zeros(len(episode))
+
+    for i_transition, state in enumerate(episode):
+        # Handle index or tuple states in the episode
+        try:
+            state = env.index_to_state[state]
+        except (IndexError, AttributeError, TypeError):
+            pass
+        x[i_transition] = state[0] + 0.5
+        y[i_transition] = state[1] + 0.5
+
+    # FUTURE: Capture direction of the transition here.  Could do a loop and plot each arrow individually, but I
+    # believe that makes things really slow.  Tried using ax.quiver, but the arguments/scaling are hard to work with...
+    ax.plot(x, y, '-o', color=color, alpha=alpha)
+    if title:
+        ax.set_title(title)
+
+    return ax
 
 
 # Helpers
