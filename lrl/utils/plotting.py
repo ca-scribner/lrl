@@ -110,9 +110,12 @@ def plot_env(env, ax=None, edgecolor='k', resize_figure=True):
     return ax
 
 
-def plot_solver_results(env, policy=None, value=None, **kwargs):
+def plot_solver_results(env, solver=None, policy=None, value=None, **kwargs):
     """
-    Convenience function to plot all policies for an env given by a dictionary of policies.
+    Convenience function to plot results from a solver over the environment map
+
+    Input can be using a BaseSolver or child object, or by specifying policy and/or value directly via dict or
+    DictWithHistory.
 
     See plot_result() for more info on generation of individual plots and additional arguments for color/precision.
 
@@ -120,6 +123,7 @@ def plot_solver_results(env, policy=None, value=None, **kwargs):
 
     Args:
         env: Augmented OpenAI Gym-like environment object
+        solver (BaseSolver): Solver object used to solve the environment
         policy (dict, DictWithHistory): Policy for the environment, keyed by integer state-index or tuples of state
         value (dict, DictWithHistory): Value function for the environment, keyed by integer state-index or tuples of
                                           state
@@ -128,6 +132,14 @@ def plot_solver_results(env, policy=None, value=None, **kwargs):
     Returns:
         list of Matplotlib Axes for the plots
     """
+    # Interpret a solver object if specified
+    if solver is not None:
+        if policy is not None or value is not None:
+            raise ValueError("Invalid input - policy or value cannot be specified if solver given as input")
+        else:
+            policy = solver.policy
+            value = solver.value
+
     # Break policy and value, which are dict-like containers mapping state->X, into a series of numpy arrays shaped the
     # same as env.desc.  See policy_dict_to_array() for more information
     # NOTE: This next section could have more rigorous detection of mismatching numbers of plots, etc., but that seemed
@@ -212,8 +224,8 @@ def plot_solver_result(env, policy=None, value=None, ax=None, add_env_to_plot=Tr
     Returns:
         Matplotlib Axes object
     """
-    if not ((policy is not None) or (value is not None)):
-        raise ValueError("Invalid input.  At least one of policy and value may be specified")
+    if not add_env_to_plot and not ((policy is not None) or (value is not None)):
+        raise ValueError("Invalid input.  Arguments passed give nothing to plot!")
     fig, ax = get_ax(ax)
 
     if add_env_to_plot:
