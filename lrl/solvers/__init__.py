@@ -6,6 +6,7 @@
 # from .q_learning import *
 from .base_solver import *
 from .planners import *
+from .learners import *
 # from .value_iteration import *
 # from .policy_iteration import *
 
