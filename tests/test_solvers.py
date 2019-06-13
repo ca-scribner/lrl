@@ -79,7 +79,7 @@ def test_policy_iteration_racetrack(supply_racetrack_5x4):
     [
         ({'alpha': None, 'epsilon': None, 'max_iters': 1000, 'num_episodes_for_convergence': 10}),
         ({'alpha': 0.1, 'epsilon': 0.1, 'max_iters': 1000, 'num_episodes_for_convergence': 10}),
-        ({'alpha': 0.1, 'epsilon': 0.2, 'max_iters': 2000, 'num_episodes_for_convergence': 10}),
+        ({'alpha': 0.1, 'epsilon': 0.2, 'max_iters': 4000, 'num_episodes_for_convergence': 10}),
         ({'alpha': 0.05, 'epsilon': 0.1, 'max_iters': 1000, 'num_episodes_for_convergence': 10}),
     ]
 )
