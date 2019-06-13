@@ -1,15 +1,15 @@
 import numpy as np
 import math
 
-from .base_solver import BaseSolver, q_from_outcomes
+from .base_solver import BaseSolver, q_from_outcomes, CONVERGENCE_TOLERANCE
 from lrl.utils.misc import Timer, count_dict_differences, dict_differences
+from lrl.data_stores import DictWithHistory
 
 import logging
 logger = logging.getLogger(__name__)
 
 
 MAX_POLICY_EVAL_ITERS_LAST_IMPROVEMENT = 1000
-CONVERGENCE_TOLERANCE = 0.000001
 
 
 class ValueIteration(BaseSolver):
@@ -17,8 +17,15 @@ class ValueIteration(BaseSolver):
 
     FUTURE: Improve this docstring.  Add refs
     """
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, env, value_function_initial_value=0.0, **kwargs):
+        super().__init__(env, **kwargs)
+
+        # String description of convergence criteria
+        self.convergence_desc = f"Max delta in value function < {self.value_function_tolerance}"
+
+        self.value = DictWithHistory(timepoint_mode='explicit', tolernace=self.value_function_tolerance*0.1)
+        for k in self.env.P.keys():
+            self.value[k] = value_function_initial_value
 
     def iterate(self):
         """
@@ -33,10 +40,13 @@ class ValueIteration(BaseSolver):
         Returns:
             None
         """
+        logger.debug(f"Performing iteration {self.iteration} of value iteration")
+
         timer = Timer()
 
         value_new, policy_new = policy_evaluation(value_function=self.value.to_dict(), env=self.env, gamma=self.gamma,
-                                                  evaluation_type='max', max_iters=1)
+                                                  evaluation_type='max', max_iters=1,
+                                                  tolerance=self.value_function_tolerance)
 
         delta_max, delta_mean = dict_differences(value_new, self.value)
         policy_changes = count_dict_differences(policy_new, self.policy)
@@ -49,6 +59,10 @@ class ValueIteration(BaseSolver):
                                  'policy_changes': policy_changes,
                                  'converged': bool(delta_max <= self.value_function_tolerance),
                                  })
+        # Use converged function to assess convergence and add that back into iteration_data
+        # (prevents duplicating the convergence logic, at the expense of more complicated logging logic)
+        self.iteration_data.get(-1)['converged'] = self.converged()
+        logger.debug(f"Iteration {self.iteration} complete with d_max={delta_max}, policy_changes={policy_changes}")
 
         # Store results and increment counter
         self.value.update(value_new)
@@ -57,14 +71,29 @@ class ValueIteration(BaseSolver):
         self.policy.increment_timepoint()
         self.iteration += 1
 
+    def converged(self):
+        """
+        Returns True if solver is converged.
+
+        Returns:
+            bool: Convergence status (True=converged)
+        """
+        try:
+            return self.iteration_data.get(-1)['delta_max'] <= self.value_function_tolerance
+        except IndexError:
+            # Data store has no records and thus cannot be converged
+            return False
+        except KeyError:
+            raise KeyError("Iteration Data has no delta_max entry - cannot determine convergence status")
+
 
 class PolicyIteration(BaseSolver):
     """Solver for policy iteration
 
     FUTURE: Improve this docstring.  Add refs
     """
-    def __init__(self, env, max_policy_eval_iters_per_improvement=10, policy_evaluation_type='on-policy-iterative',
-                 **kwargs):
+    def __init__(self, env, value_function_initial_value=0.0, max_policy_eval_iters_per_improvement=10,
+                 policy_evaluation_type='on-policy-iterative', **kwargs):
         # FUTURE: Clean up the init arguments
         super().__init__(env, **kwargs)
 
@@ -72,6 +101,13 @@ class PolicyIteration(BaseSolver):
         # if on the final Evaluate-Improve iteration (eg: if previous Evaluate-Improve iter found 0 policy changes)
         self.max_policy_eval_iters_per_improvement = max_policy_eval_iters_per_improvement
         self.policy_evaluation_type = policy_evaluation_type
+
+        # String description of convergence criteria
+        self.convergence_desc = "1 iteration without change in policy"
+
+        self.value = DictWithHistory(timepoint_mode='explicit', tolernace=self.value_function_tolerance*0.1)
+        for k in self.env.P.keys():
+            self.value[k] = value_function_initial_value
 
     def _policy_evaluation(self, max_iters=None):
         """
@@ -107,7 +143,8 @@ class PolicyIteration(BaseSolver):
             int: (if return_differences==True) Number of differences between the old and new policies
         """
         value_new, policy_new = policy_evaluation(value_function=self.value.to_dict(), env=self.env,
-                                                  gamma=self.gamma, evaluation_type='max')
+                                                  gamma=self.gamma, evaluation_type='max',
+                                                  tolerance=self.value_function_tolerance)
 
         if return_differences:
             returned = count_dict_differences(policy_new, self.policy)
@@ -164,7 +201,27 @@ class PolicyIteration(BaseSolver):
                                  'policy_changes': policy_changes,
                                  'converged': policy_changes == 0,
                                  })
+        # Use converged function to assess convergence and add that back into iteration_data
+        # (prevents duplicating the convergence logic, at the expense of more complicated logging logic)
+        self.iteration_data.get(-1)['converged'] = self.converged()
+        logger.debug(f"Iteration {self.iteration} complete with d_max={delta_max}, policy_changes={policy_changes}")
+
         self.iteration += 1
+
+    def converged(self):
+        """
+        Returns True if solver is converged.
+
+        Returns:
+            bool: Convergence status (True=converged)
+        """
+        try:
+            return self.iteration_data.get(-1)['policy_changes'] == 0
+        except IndexError:
+            # Data store has no records and thus cannot be converged
+            return False
+        except KeyError:
+            raise KeyError("Iteration Data has no policy_changes entry - cannot determine convergence status")
 
 
 # Helpers
@@ -275,7 +332,7 @@ def policy_evaluation_iterative(value_function, env, gamma, policy=None, evaluat
         this_iter += 1
         value_function = value_new
 
-    logger.info(f"Policy evaluation completed after {this_iter} iters")
+    logger.info(f"policy_evaluation completed after {this_iter} iters")
 
     if evaluation_type == 'max':
         return value_function, policy_new

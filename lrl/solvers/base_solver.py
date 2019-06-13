@@ -4,16 +4,18 @@ import logging
 logger = logging.getLogger(__name__)
 
 CONVERGENCE_TOLERANCE = 0.000001
-MAX_ITERATIONS = 50
+MAX_ITERATIONS = 500
 SOLVER_ITERATION_DATA_FIELDS = ['iteration', 'time', 'delta_max', 'delta_mean', 'policy_changes', 'converged']
 
 
 class BaseSolver:
     """Base class for solvers
 
-    TODO: Describe attributes.  Need to include things like policy is keyed by state tuple/index, etc."""
+    FUTURE: Describe attributes.  Need to include things like policy is keyed by state tuple/index, etc.
+    Dont forget value_function_tolerance can be for value or Q
+    """
     def __init__(self, env, gamma=0.9, value_function_tolerance=CONVERGENCE_TOLERANCE, policy_init_type='zeros',
-                 max_iters=MAX_ITERATIONS, value_function_initial_value=0.0):
+                 max_iters=MAX_ITERATIONS):
         self.env = env
         self.value_function_tolerance = value_function_tolerance
         self.max_iters = max_iters
@@ -28,13 +30,12 @@ class BaseSolver:
         self.policy = None
         self.init_policy(init_type=policy_init_type)
 
-        self.value = DictWithHistory(timepoint_mode='explicit')
-        for k in self.env.P.keys():
-            self.value[k] = value_function_initial_value
-
         # Storage for iteration metadata
         self.iteration = 0
         self.iteration_data = GeneralIterationData(columns=SOLVER_ITERATION_DATA_FIELDS)
+
+        # String description of convergence criteria used here
+        self.convergence_desc = "Criteria description not implemented"
 
     def init_policy(self, init_type=None):
         """
@@ -60,13 +61,7 @@ class BaseSolver:
             raise ValueError(f"Invalid init_type {init_type} - must be one of {valid_init_types}")
 
         # Index by whatever the environment indexes by (could be integers or some other object).
-        # First try indexing by integers, but if that breaks try to promote those to states
-        state_keys = range(self.env.observation_space.n)
-        try:
-            _ = self.env.P[state_keys[0]]
-        except KeyError:
-            state_keys = self.env.index_to_state[:]
-            _ = self.env.P[state_keys[0]]
+        state_keys = list(self.env.P.keys())
 
         self.policy = DictWithHistory(timepoint_mode='explicit')
         if self.policy_init_type == 'zeros':
@@ -103,23 +98,27 @@ class BaseSolver:
         """
         pass
 
-    def iterate_to_convergence(self):
+    def iterate_to_convergence(self, raise_if_not_converged=True):
         """
         Perform self.iterate repeatedly until convergence
+
+        Args:
+            raise_if_not_converged (bool): If true, will raise an exception if convergence is not reached before hitting
+                                           maximum number of iterations.
 
         Returns:
             None
         """
-        logger.debug(f"Solver iterating to convergence (delta<{self.value_function_tolerance} "
-                     f"or iters>{self.max_iters})")
-        # Binding to easily get most recent delta in readable way
+        logger.info(f"Solver iterating to convergence ({self.convergence_desc} or iters>{self.max_iters})")
 
         while (not self.converged()) and (self.iteration < self.max_iters):
             self.iterate()
-            converged = self.iteration_data.get(i=-1)['converged']
+            converged = self.converged()
             logger.debug(f'{self.iteration}: delta_max = {self.iteration_data.get(i=-1)["delta_max"]:.1e}, '
                          f'policy_changes = {self.iteration_data.get(i=-1)["policy_changes"]}, '
                          f'converged = {converged}')
+        if self.iteration >= self.max_iters and raise_if_not_converged:
+            raise Exception(f"Max iterations ({self.max_iters}) reached - solver did not converge")
 
     def converged(self):
         """
@@ -136,8 +135,8 @@ class BaseSolver:
         except IndexError:
             # Data store has no records and thus cannot be converged
             return False
-        except AttributeError:
-            raise AttributeError("Iteration Data has no converged entry - cannot determine convergence status")
+        except KeyError:
+            raise KeyError("Iteration Data has no converged entry - cannot determine convergence status")
 
     def run_policy(self, max_steps=1000, initial_state=None):
         """
