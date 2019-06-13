@@ -329,15 +329,39 @@ class QLearning(BaseSolver):
 
 def decay_functions(settings):
     """
-    TODO: Docstring
+    Returns a decay function that accepts timestep as argument and returns a value
+
+    Essentially a pre-configured interpolator with different possible settings.  Return from this function is a
+    lambda function of signature:
+        function(timestep)
+    where timestep is the value to interpolate on, and function is preconfigured using a given interpolation schedule.
+
+    Schedules supported:
+        constant: Returns a constant value, regardless of input timestep
+            Args:
+                initial_value (float): The value to be returned when the function is invoked
+        linear: Returns a linearly interpolated value, with extrapolation outside the given range being constant
+            Args:
+                initial_value (float): The value to be returned when the function is invoked with timestep <=
+                                       initial_timestep
+                initial_timestep (int): The timestep associated with the initial value
+                final_value (float): The value to be returned when the function is invoked with timestep >=
+                                     initial_timestep
+                final_timestep (int): The timestep associated with the final value
+            Return logic:
+                If timestep <= initial_timestep: return initial_value
+                elif initial_timestep < timestep < final_timestep: linearly interpolate between initial_value and
+                                                                   final_value
+                elif timestep >= final_timestep: return final_value
 
     FUTURE: Add exponential decay
 
     Args:
-        settings:
+        settings (dict): Contains at least "type" and other values as described above based on chosen type
 
     Returns:
-
+        An function with signature:
+            value_at_timestep = function(timestep)
     """
     if settings['type'] == 'constant':
         return lambda timestep: settings['initial_value']
