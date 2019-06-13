@@ -74,8 +74,16 @@ def test_policy_iteration_racetrack(supply_racetrack_5x4):
     assert pi.score_policy(iters=3, initial_state=(1, 2, 0, 0)).get_statistic(statistic='reward_mean') == \
            pytest.approx(99)
 
-
-def test_qlearning_iteration_racetrack(supply_racetrack_5x4):
+@pytest.mark.parametrize(
+    "solver_settings",
+    [
+        ({'alpha': None, 'epsilon': None, 'max_iters': 1000, 'num_episodes_for_convergence': 10}),
+        ({'alpha': 0.1, 'epsilon': 0.1, 'max_iters': 1000, 'num_episodes_for_convergence': 10}),
+        ({'alpha': 0.1, 'epsilon': 0.2, 'max_iters': 2000, 'num_episodes_for_convergence': 10}),
+        ({'alpha': 0.05, 'epsilon': 0.1, 'max_iters': 1000, 'num_episodes_for_convergence': 10}),
+    ]
+)
+def test_qlearning_iteration_racetrack(supply_racetrack_5x4, solver_settings):
     """
     Spot test QLearning's functionality
 
@@ -92,7 +100,7 @@ def test_qlearning_iteration_racetrack(supply_racetrack_5x4):
     """
     # Build environment and policy iteration object
     env = supply_racetrack_5x4.get()
-    ql = QLearning(env, alpha=0.1, epsilon=0.1, max_iters=500, num_episodes_for_convergence=10)
+    ql = QLearning(env, **solver_settings)
 
     # Solve environment (should converge)
     ql.iterate_to_convergence()

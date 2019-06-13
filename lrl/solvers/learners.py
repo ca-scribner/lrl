@@ -18,13 +18,47 @@ class QLearning(BaseSolver):
     FUTURE: Improve this docstring.  Add refs
     """
     def __init__(self, env, max_steps_per_episode=MAX_STEPS_PER_EPISODE, discount_factor=0.9,
-                 alpha=0.1, epsilon=0.1, max_iters=MAX_ITERATIONS,
+                 alpha=None, epsilon=None, max_iters=MAX_ITERATIONS,
                  num_episodes_for_convergence=NUM_EPISODES_FOR_CONVERGENCE, **kwargs):
-        # FUTURE: alpha, epsilon accepted as number (coerce to float) or dict of {initial, minimum, decay_type, decay_val}
         super().__init__(env, max_iters=max_iters, **kwargs)
 
-        self._alpha_initial = alpha
-        self._epsilon_initial = epsilon
+        # Interpret alpha and epsilon settings
+        if alpha is None:
+            # Default schedule
+            self._alpha_settings = {
+                'type': 'linear',
+                'initial_value': 0.1,
+                'initial_timestep': 0,
+                'final_value': 0.025,
+                'final_timestep': self.max_iters,
+            }
+        elif isinstance(alpha, dict):
+            self._alpha_settings = alpha
+        else:
+            # Interpret alpha as a number and build a default settings dict
+            self._alpha_settings = {
+                'type': 'constant',
+                'initial_value': float(alpha),
+            }
+
+        if epsilon is None:
+            # Default schedule
+            self._epsilon_settings = {
+                'type': 'linear',
+                'initial_value': 0.25,
+                'initial_timestep': 0,
+                'final_value': 0.05,
+                'final_timestep': self.max_iters,
+            }
+        elif isinstance(epsilon, dict):
+            self._epsilon_settings = epsilon
+        else:
+            # Interpret alpha as a number and build a default settings dict
+            self._epsilon_settings = {
+                'type': 'constant',
+                'initial_value': float(epsilon),
+            }
+
         self.discount_factor = discount_factor
         self.transitions = 0
         self.max_steps_per_episode = max_steps_per_episode
@@ -47,13 +81,11 @@ class QLearning(BaseSolver):
 
     @property
     def alpha(self):
-        # FUTURE: Complete this for decay settings
-        return self._alpha_initial
+        return decay_functions(self._alpha_settings)(self.iteration)
 
     @property
     def epsilon(self):
-        # FUTURE: Complete this for decay settings
-        return self._epsilon_initial
+        return decay_functions(self._epsilon_settings)(self.iteration)
 
     def step(self, count_transition=True):
         """
@@ -206,6 +238,8 @@ class QLearning(BaseSolver):
                                  'delta_max': delta_max,
                                  'steps': len(states),
                                  'policy_changes': policy_changes,
+                                 'alpha': self.alpha,
+                                 'epsilon': self.epsilon,
                                  })
         # Use converged function to assess convergence and add that back into iteration_data
         # (prevents duplicating the convergence logic, at the expense of more complicated logging logic)
@@ -291,3 +325,26 @@ class QLearning(BaseSolver):
         self.q = DictWithHistory(timepoint_mode='explicit')
         for k in state_action_keys:
             self.q[k] = init_val
+
+
+def decay_functions(settings):
+    """
+    TODO: Docstring
+
+    FUTURE: Add exponential decay
+
+    Args:
+        settings:
+
+    Returns:
+
+    """
+    if settings['type'] == 'constant':
+        return lambda timestep: settings['initial_value']
+    elif settings['type'] == 'linear':
+        return lambda timepoint: np.interp(x=timepoint,
+                                           xp=[settings['initial_timestep'], settings['final_timestep']],
+                                           fp=[settings['initial_value'], settings['final_value']],
+                                           )
+    else:
+        raise ValueError(f"Invalid function type {settings['type']}")

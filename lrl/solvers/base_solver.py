@@ -5,7 +5,8 @@ logger = logging.getLogger(__name__)
 
 CONVERGENCE_TOLERANCE = 0.000001
 MAX_ITERATIONS = 500
-SOLVER_ITERATION_DATA_FIELDS = ['iteration', 'time', 'delta_max', 'delta_mean', 'policy_changes', 'converged']
+SOLVER_ITERATION_DATA_FIELDS = ['iteration', 'time', 'delta_max', 'delta_mean', 'policy_changes', 'alpha', 'epsilon',
+                                'converged']
 
 
 class BaseSolver:
