@@ -317,7 +317,7 @@ def plot_solver_result(env, policy=None, value=None, ax=None, add_env_to_plot=Tr
 # FUTURE: Add a "format plot" function to handle all plot default formatting (xy lims, removing labels, subtitle, ...)
 
 
-def plot_episodes(episodes, env=None, add_env_to_plot=False, max_episodes=MAX_PATHS_ON_EPISODE_PLOT,
+def plot_episodes(episodes, env=None, add_env_to_plot=True, max_episodes=MAX_PATHS_ON_EPISODE_PLOT,
                   alpha=None, color ='k', title=None, ax=None):
     """
     FUTURE: docstring
