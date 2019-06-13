@@ -256,7 +256,7 @@ class DictWithHistory(MutableMapping):
         To avoid logging data just because of rounding error, items are only set if np.isclose(old_val, new_val) is
         False.  Default tolerance for isclose is currently used, but this could be improved easily if needed.
     """
-    def __init__(self, timepoint_mode='explicit'):
+    def __init__(self, timepoint_mode='explicit', tolernace=1e-7):
         """
         Initialize DictWithHistory
 
@@ -267,6 +267,8 @@ class DictWithHistory(MutableMapping):
                 implicit: Timepoint incrementing is automatic and occurs on every setting action, including redundant
                           sets (setting a key to a value it already holds).  This is useful for a timehistory of all
                           sets to the object
+            tolerance (float): Absolute tolerance to test for when replacing values.  If a value to be set is less than
+                               tolerance different from the current value, the current value is not changed.
         """
         self._data = {}
 
@@ -277,6 +279,8 @@ class DictWithHistory(MutableMapping):
 
         # Current integer timepoint used for writing data
         self.current_timepoint = 0
+
+        self.absolute_tolerance = tolernace
 
     def __getitem__(self, key):
         # Return most recent _data[item]
@@ -300,7 +304,7 @@ class DictWithHistory(MutableMapping):
                 matches = True
             else:
                 try:
-                    matches = np.all(np.isclose(self._data[key][-1][1], value))
+                    matches = np.all(np.isclose(self._data[key][-1][1], value, atol=self.absolute_tolerance, rtol=0.0))
                 except (ValueError, TypeError):
                     # ValueError in np.all means the values we're comparing dont broadcast together (might have different
                     # sizes, etc), so they don't match.
