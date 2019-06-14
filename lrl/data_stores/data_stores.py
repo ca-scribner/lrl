@@ -115,9 +115,30 @@ class WalkStatistics(object):
         Returns:
             int or float: Value of the statistic requested
         """
+        # if self.statistics[index] is None:
+        #     self.compute(index=index)
+        # return self.statistics[index][statistic]
+        return self.get_statistics(index)[statistic]
+
+    def get_statistics(self, index=-1):
+        """
+        Return a lazily computed and memorized dictionary of all statistics about the rewards from walks 0 to index
+
+        If the statistic has not been previous computed, it will be computed here.  See .compute() for definition of
+        statistics available
+
+        Side Effects:
+            self.statistics[index] will be computed using self.compute() if it has not been already
+
+        Args:
+            index: Walk index at which statistics are computed (statistics are computed for walks 0 through index)
+
+        Returns:
+            int or float: Value of the statistic requested
+        """
         if self.statistics[index] is None:
             self.compute(index=index)
-        return self.statistics[index][statistic]
+        return self.statistics[index]
 
     def add(self, reward, walk, terminal):
         """
