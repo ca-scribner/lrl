@@ -3,10 +3,16 @@ from lrl.data_stores import GeneralIterationData, WalkStatistics, DictWithHistor
 import logging
 logger = logging.getLogger(__name__)
 
-CONVERGENCE_TOLERANCE = 0.000001
+CONVERGENCE_TOLERANCE = 0.00001
 MAX_ITERATIONS = 500
-SOLVER_ITERATION_DATA_FIELDS = ['iteration', 'time', 'delta_max', 'delta_mean', 'policy_changes', 'alpha', 'epsilon',
-                                'converged']
+MIN_ITERATIONS = 2
+SOLVER_ITERATION_DATA_FIELDS = ['iteration', 'time', 'delta_max', 'delta_mean', 'policy_changes', 'converged']
+
+DEFAULT_N_EVALS = 500
+DEFAULT_TRAINS_PER_EVAL = 500
+SCORING_SUMMARY_DATA_FIELDS = ['iteration', 'reward_mean', 'reward_median', 'reward_std', 'reward_min', 'reward_max',
+                                   'steps_mean', 'steps_median', 'steps_std', 'steps_min', 'steps_max']
+MAX_STEPS_PER_EPISODE = 100
 
 
 class BaseSolver:
@@ -14,12 +20,16 @@ class BaseSolver:
 
     FUTURE: Describe attributes.  Need to include things like policy is keyed by state tuple/index, etc.
     Dont forget value_function_tolerance can be for value or Q
+    FUTURE: Explain score_while_training (true = 50 evals every 250 trains.  dict of n_evals, n_trains_per_eval can
+    change that
     """
     def __init__(self, env, gamma=0.9, value_function_tolerance=CONVERGENCE_TOLERANCE, policy_init_type='zeros',
-                 max_iters=MAX_ITERATIONS):
+                 max_iters=MAX_ITERATIONS, min_iters=MIN_ITERATIONS, max_steps_per_episode=MAX_STEPS_PER_EPISODE,
+                 score_while_training=False, raise_if_not_converged=True):
         self.env = env
         self.value_function_tolerance = value_function_tolerance
         self.max_iters = max_iters
+        self.min_iters = min_iters
 
         # Discount Factor
         self.gamma = gamma
@@ -37,6 +47,19 @@ class BaseSolver:
 
         # String description of convergence criteria used here
         self.convergence_desc = "Criteria description not implemented"
+        self.raise_if_not_converged = raise_if_not_converged
+
+        if score_while_training is True:
+            self.score_while_training = {
+                'n_evals': DEFAULT_N_EVALS,
+                'n_trains_per_eval': DEFAULT_TRAINS_PER_EVAL,
+            }
+        else:
+            self.score_while_training = score_while_training
+
+        self.scoring_summary = GeneralIterationData(columns=SCORING_SUMMARY_DATA_FIELDS)
+        self.scoring_walk_statistics = {}
+        self.max_steps_per_episode = max_steps_per_episode
 
     def init_policy(self, init_type=None):
         """
@@ -99,21 +122,41 @@ class BaseSolver:
         """
         pass
 
-    def iterate_to_convergence(self, raise_if_not_converged=True):
+    def iterate_to_convergence(self, raise_if_not_converged=None, score_while_training=None):
         """
-        Perform self.iterate repeatedly until convergence
+        Perform self.iterate repeatedly until convergence, optionally scoring the current policy periodically
+
+        Side Effects:
+            FUTURE: NEED TO BE ADDED
 
         Args:
             raise_if_not_converged (bool): If true, will raise an exception if convergence is not reached before hitting
-                                           maximum number of iterations.
+                                           maximum number of iterations.  If None, uses self.raise_if_not_converged
+            score_while_training (bool, dict, None): If None, use self.score_while_training.  Else, accepts inputs of
+                                                     same format as accepted for score_while_training solver inputs
 
         Returns:
             None
         """
+        if score_while_training is None:
+            score_while_training = self.score_while_training
+
         logger.info(f"Solver iterating to convergence ({self.convergence_desc} or iters>{self.max_iters})")
 
         while (not self.converged()) and (self.iteration < self.max_iters):
             self.iterate()
+
+            if score_while_training and (self.iteration % score_while_training['n_trains_per_eval'] == 0):
+                logger.info(f'Current greedy policy being scored {score_while_training["n_evals"]} times at iteration '
+                            f'{self.iteration}')
+                self.scoring_walk_statistics[self.iteration] = self.score_policy(iters=score_while_training['n_evals'])
+
+                data = {'iteration': self.iteration}
+                data.update(self.scoring_walk_statistics[self.iteration].get_statistics())
+                self.scoring_summary.add(data)
+                logger.info(f'Current greedy policy achieved: '
+                            f'r_mean = {data["reward_mean"]}, '
+                            f'r_max = {data["reward_max"]}')
             converged = self.converged()
             logger.debug(f'{self.iteration}: delta_max = {self.iteration_data.get(i=-1)["delta_max"]:.1e}, '
                          f'policy_changes = {self.iteration_data.get(i=-1)["policy_changes"]}, '
@@ -131,15 +174,19 @@ class BaseSolver:
         Returns:
             bool: Convergence status (True=converged)
         """
-        try:
-            return self.iteration_data.get(i=-1)['converged']
-        except IndexError:
-            # Data store has no records and thus cannot be converged
+        if self.iteration < self.min_iters:
+            logger.debug(f"Not converged: iteration ({self.iteration}) < min_iters ({self.min_iters})")
             return False
-        except KeyError:
-            raise KeyError("Iteration Data has no converged entry - cannot determine convergence status")
+        else:
+            try:
+                return self.iteration_data.get(i=-1)['converged']
+            except IndexError:
+                # Data store has no records and thus cannot be converged
+                return False
+            except KeyError:
+                raise KeyError("Iteration Data has no converged entry - cannot determine convergence status")
 
-    def run_policy(self, max_steps=1000, initial_state=None):
+    def run_policy(self, max_steps=None, initial_state=None):
         """
         Perform a walk through the environment using the current policy
 
@@ -148,6 +195,7 @@ class BaseSolver:
 
         Args:
             max_steps: Maximum number of steps to be taken in the walk (step 0 is taken to be entering initial state)
+                       If None, defaults to self.max_steps_per_episode
             initial_state: State for the environment to be placed in to start the walk (used to force a deterministic
                            start from anywhere in the environment rather than the typical start position)
 
@@ -156,6 +204,8 @@ class BaseSolver:
             list of rewards obtained during the walk (rewards[0] == 0 as step 0 is simply starting the game)
             boolean indicating if the walk was terminal according to the environment
         """
+        if max_steps is None:
+            max_steps = self.max_steps_per_episode
         self.env.reset()
         if initial_state:
             # Override starting state
@@ -180,7 +230,7 @@ class BaseSolver:
         logger.debug(f"Walk completed in {len(states)} steps (terminal={terminal}), receiving total reward of {sum(rewards)}")
         return states, rewards, terminal
 
-    def score_policy(self, iters=10, max_steps=1000, initial_state=None):
+    def score_policy(self, iters=10, max_steps=None, initial_state=None):
         """
         Score the current policy by performing 'iters' greedy walks through the environment and returning statistics
 
@@ -189,21 +239,22 @@ class BaseSolver:
 
         Args:
             iters: Number of walks through the environment
-            max_steps: Maximum number of steps allowed per walk
+            max_steps: Maximum number of steps allowed per walk.  If None, defaults to self.max_steps_per_episode
             initial_state: State for the environment to be placed in to start the walk (used to force a deterministic
                            start from anywhere in the environment rather than the typical start position)
 
         Returns:
             WalkStatistics: Object containing statistics about the walks (rewards, number of steps, etc.)
         """
-        logger.info(f'Scoring policy')
+        if max_steps is None:
+            max_steps = self.max_steps_per_episode
         statistics = WalkStatistics()
 
         for iter in range(iters):
             # Walk through the environment following the current policy, up to max_steps total steps
             states, rewards, terminal = self.run_policy(max_steps=max_steps, initial_state=initial_state)
             statistics.add(reward=sum(rewards), walk=states, terminal=terminal)
-            logger.info(f"Policy scored {statistics.rewards[-1]} in {len(states)} steps (terminal={terminal})")
+            logger.debug(f"Policy scored {statistics.rewards[-1]} in {len(states)} steps (terminal={terminal})")
 
         return statistics
 

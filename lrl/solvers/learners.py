@@ -1,26 +1,34 @@
 import numpy as np
+import numbers
 
 from .base_solver import BaseSolver
-from lrl.data_stores import WalkStatistics, DictWithHistory
-from lrl.utils.misc import Timer, count_dict_differences, dict_differences
+from lrl.data_stores import WalkStatistics, DictWithHistory, GeneralIterationData
+from lrl.utils.misc import Timer, count_dict_differences
 
 import logging
 logger = logging.getLogger(__name__)
 
-MAX_STEPS_PER_EPISODE = 500
 MAX_ITERATIONS = 2000
+MIN_ITERATIONS = 250
 NUM_EPISODES_FOR_CONVERGENCE = 20
+SOLVER_ITERATION_DATA_FIELDS = ['iteration', 'time', 'delta_max', 'policy_changes', 'alpha', 'epsilon',
+                                'converged']
+CONVERGENCE_TOLERANCE = 0.1
 
 
 class QLearning(BaseSolver):
     """Solver class for Q-Learning
 
     FUTURE: Improve this docstring.  Add refs
+
     """
-    def __init__(self, env, max_steps_per_episode=MAX_STEPS_PER_EPISODE, discount_factor=0.9,
-                 alpha=None, epsilon=None, max_iters=MAX_ITERATIONS,
-                 num_episodes_for_convergence=NUM_EPISODES_FOR_CONVERGENCE, **kwargs):
-        super().__init__(env, max_iters=max_iters, **kwargs)
+    def __init__(self, env, value_function_tolerance=CONVERGENCE_TOLERANCE,
+                 discount_factor=0.9,
+                 alpha=None, epsilon=None, max_iters=MAX_ITERATIONS, min_iters=MIN_ITERATIONS,
+                 num_episodes_for_convergence=NUM_EPISODES_FOR_CONVERGENCE,
+                 **kwargs):
+        super().__init__(env, max_iters=max_iters, min_iters=min_iters,
+                         value_function_tolerance=value_function_tolerance, **kwargs)
 
         # Interpret alpha and epsilon settings
         if alpha is None:
@@ -61,11 +69,13 @@ class QLearning(BaseSolver):
 
         self.discount_factor = discount_factor
         self.transitions = 0
-        self.max_steps_per_episode = max_steps_per_episode
 
         # Estimate of Q, keyed by ((state), (action)) where state/action can be integers or qualified tuples
         self.q = None
         self.init_q()
+
+        # Replace standard iteration_data store with one that includes more fields
+        self.iteration_data = GeneralIterationData(columns=SOLVER_ITERATION_DATA_FIELDS)
 
         # Additional statistics during solving
         self.walk_statistics = WalkStatistics()
@@ -76,8 +86,6 @@ class QLearning(BaseSolver):
         self.convergence_desc = f"{self.num_episodes_for_convergence} episodes with max delta in Q function < " \
             f"{self.value_function_tolerance}"
 
-        # TODO: Remove this!
-        self.time_on_policy_improvement = 0.0
 
     @property
     def alpha(self):
@@ -94,7 +102,10 @@ class QLearning(BaseSolver):
         FUTURE: Improve docstring.
 
         Returns:
-            tuple of transition: (state, reward, next_state, is_terminal)
+            tuple of (transition, delta_q), where
+                transition: (state, reward, next_state, is_terminal)
+                delta_q: The (absolute) change in q caused by this step
+
         """
         logger.debug(f'Taking and learning from a step in the environment (transition count = {self.transitions})')
         state = self.env.s
@@ -110,17 +121,22 @@ class QLearning(BaseSolver):
         try:
             # This will work is q is indexed by integer state and action
             td = reward + self.discount_factor * q_best_next_action - self.q[state, action]
-            self.q[state, action] += self.alpha * td
         except KeyError:
             # This will work if q is indexed by tuple state and action (merge the tuples for q index)
             td = reward + self.discount_factor * q_best_next_action - self.q[state + action]
+
+        try:
+            self.q[(int(state), int(action))] += self.alpha * td
+        except (TypeError, KeyError) as e:
             self.q[state + action] += self.alpha * td
+
+        delta_q = self.alpha * td
 
         if count_transition:
             self.transitions += 1
         logger.debug(f'Completed step from {state} -> {next_state} yielding {reward} (terminal={is_terminal})')
 
-        return state, reward, next_state, is_terminal
+        return (state, reward, next_state, is_terminal), abs(delta_q)
 
     def get_q_at_state(self, state):
         """
@@ -197,19 +213,22 @@ class QLearning(BaseSolver):
         Returns:
 
         """
-        logger.debug(f"Performing iteration (episode) {self.iteration} of Q-Learning")
+        if self.iteration % 500 == 0:
+            logger.info(f"Performing iteration (episode) {self.iteration} of Q-Learning")
+        else:
+            logger.debug(f"Performing iteration (episode) {self.iteration} of Q-Learning")
         timer = Timer()
-        total_reward = 0.0
         states = [self.env.reset()]
         rewards = [0.]
+        delta_max = 0.0
 
-        # Remember old q function for later
-        q_old = self.q.to_dict()
         policy_old = self.policy.to_dict()
 
         # Perform a single episode, learning along the way (this implicitly updates self.q)
         for i_step in range(self.max_steps_per_episode):
-            state, reward, next_state, is_terminal = self.step()
+            transition, this_delta_q = self.step()
+            delta_max = max(delta_max, this_delta_q)
+            state, reward, next_state, is_terminal = transition
             states.append(next_state)
             rewards.append(reward)
 
@@ -219,22 +238,18 @@ class QLearning(BaseSolver):
                      f"(terminal={is_terminal})")
 
         # Compute new greedy policy to compare to old policy
-        # TODO: How costly is this?  Feels like it might be costly.  If so, omit during training?
-        # FUTURE: Remove this once you have a feel for it
-        timer_policy_improvement = Timer()
-        self._policy_improvement()
-        logging.debug(f'Policy improvement took {timer_policy_improvement.elapsed()}s')
-        self.time_on_policy_improvement += timer_policy_improvement.elapsed()
+        # Only update states that were visited and thus have an updated Q and possibly a new best action/Q
+        # Pass states as set to remove duplicates
+        self._policy_improvement(set(states))
 
         # Log metadata about iteration
-        delta_max, delta_mean = dict_differences(self.q, q_old)
-        policy_changes = count_dict_differences(self.policy, policy_old)
-        logger.debug(f"Walk resulted in delta_max = {delta_max}, delta_mean = {delta_mean}, and {policy_changes} policy "
+        # delta_max, delta_mean = dict_differences(self.q, q_old)
+        policy_changes = count_dict_differences(self.policy, policy_old, keys=states)
+        logger.debug(f"Walk resulted in delta_max = {delta_max}, and {policy_changes} policy "
                      f"changes")
 
         self.iteration_data.add({'iteration': self.iteration,
                                  'time': timer.elapsed(),
-                                 'delta_mean': delta_mean,
                                  'delta_max': delta_max,
                                  'steps': len(states),
                                  'policy_changes': policy_changes,
@@ -257,36 +272,40 @@ class QLearning(BaseSolver):
         logger.debug(f'Assessing convergence')
         # Try to use a previously memorized convergence result (converged field indicates whether this convergence
         # test was previously True/False for at this iteration)
-        try:
-            logger.debug(f'Returning memorized result ({self.iteration_data.get(-1)["converged"]})')
-            return self.iteration_data.get(-1)['converged']
-        except IndexError:
-            # Data store has no records and thus cannot be converged
-            logger.debug(f"IndexError (not enough data)")
+        if self.iteration < self.min_iters:
+            logger.debug(f"Not converged: iteration ({self.iteration}) < min_iters ({self.min_iters})")
             return False
-        except KeyError:
-            # No converged field exists - convergence has not been previous assessed
-            logger.debug(f'Found record without converged field - new convergence assessment required')
-            pass
+        else:
+            try:
+                logger.debug(f'Returning memorized result ({self.iteration_data.get(-1)["converged"]})')
+                return self.iteration_data.get(-1)['converged']
+            except IndexError:
+                # Data store has no records and thus cannot be converged
+                logger.debug(f"Not converged: IndexError (not enough data)")
+                return False
+            except KeyError:
+                # No converged field exists - convergence has not been previous assessed
+                logger.debug(f'Found record without converged field - new convergence assessment required')
+                pass
 
-        # Check last self.num_episodes_for_convergence to ensure they have deltas lower than the convergence limit
-        try:
-            for i in range(1, self.num_episodes_for_convergence + 1):
-                if self.iteration_data.get(-i)['delta_max'] > self.value_function_tolerance:
-                    logger.debug(f"Convergence failed - iter {self.iteration_data.get(-i)['iteration']} (now - {i-1}) "
-                                 f"delta_max={self.iteration_data.get(-i)['delta_max']} "
-                                 f"(> {self.value_function_tolerance})")
-                    return False
-            logger.debug(f'Convergence = True')
-            return True
-        except IndexError:
-            # Data store does not have enough records to assess convergence and thus cannot be converged
-            logger.debug(f"IndexError (not enough data)")
-            return False
-        except KeyError:
-            raise KeyError("Iteration Data has no delta_max field - cannot determine convergence status")
+            # Check last self.num_episodes_for_convergence to ensure they have deltas lower than the convergence limit
+            try:
+                for i in range(1, self.num_episodes_for_convergence + 1):
+                    if self.iteration_data.get(-i)['delta_max'] > self.value_function_tolerance:
+                        logger.debug(f"Convergence failed - iter {self.iteration_data.get(-i)['iteration']} (now - {i-1}) "
+                                     f"delta_max={self.iteration_data.get(-i)['delta_max']} "
+                                     f"(> {self.value_function_tolerance})")
+                        return False
+                logger.debug(f'Convergence = True')
+                return True
+            except IndexError:
+                # Data store does not have enough records to assess convergence and thus cannot be converged
+                logger.debug(f"Not converged: IndexError (not enough data)")
+                return False
+            except KeyError:
+                raise KeyError("Iteration Data has no delta_max field - cannot determine convergence status")
 
-    def _policy_improvement(self):
+    def _policy_improvement(self, states=None):
         """
         Update the policy to be greedy relative to the most recent q function
 
@@ -294,12 +313,14 @@ class QLearning(BaseSolver):
             self.policy: Updated to be greedy relative to self.q
 
         Args:
-            None
+            states: List of states to update.  If None, all states will be updated
 
         Returns:
             None
         """
-        for state in self.policy.keys():
+        if states is None:
+            states = self.policy.keys()
+        for state in states:
             self.policy[state] = self.choose_epsilon_greedy_action(state, epsilon=0)
 
     def init_q(self, init_val=0.0):
@@ -317,7 +338,7 @@ class QLearning(BaseSolver):
         action_keys = list(range(self.env.action_space.n))
 
         if isinstance(state_keys[0], int):
-            state_action_keys = zip(state_keys, action_keys)
+            state_action_keys = [(state_key, action_key) for state_key in state_keys for action_key in action_keys]
         else:
             action_keys = [self.env.index_to_action[action] for action in action_keys]
             state_action_keys = [state_key + action_key for state_key in state_keys for action_key in action_keys]

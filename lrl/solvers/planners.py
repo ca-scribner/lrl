@@ -78,13 +78,17 @@ class ValueIteration(BaseSolver):
         Returns:
             bool: Convergence status (True=converged)
         """
-        try:
-            return self.iteration_data.get(-1)['delta_max'] <= self.value_function_tolerance
-        except IndexError:
-            # Data store has no records and thus cannot be converged
+        if self.iteration < self.min_iters:
+            logger.debug(f"Not converged: iteration ({self.iteration}) < min_iters ({self.min_iters})")
             return False
-        except KeyError:
-            raise KeyError("Iteration Data has no delta_max entry - cannot determine convergence status")
+        else:
+            try:
+                return self.iteration_data.get(-1)['delta_max'] <= self.value_function_tolerance
+            except IndexError:
+                # Data store has no records and thus cannot be converged
+                return False
+            except KeyError:
+                raise KeyError("Iteration Data has no delta_max entry - cannot determine convergence status")
 
 
 class PolicyIteration(BaseSolver):
@@ -215,13 +219,17 @@ class PolicyIteration(BaseSolver):
         Returns:
             bool: Convergence status (True=converged)
         """
-        try:
-            return self.iteration_data.get(-1)['policy_changes'] == 0
-        except IndexError:
-            # Data store has no records and thus cannot be converged
+        if self.iteration < self.min_iters:
+            logger.debug(f"Not converged: iteration ({self.iteration}) < min_iters ({self.min_iters})")
             return False
-        except KeyError:
-            raise KeyError("Iteration Data has no policy_changes entry - cannot determine convergence status")
+        else:
+            try:
+                return self.iteration_data.get(-1)['policy_changes'] == 0
+            except IndexError:
+                # Data store has no records and thus cannot be converged
+                return False
+            except KeyError:
+                raise KeyError("Iteration Data has no policy_changes entry - cannot determine convergence status")
 
 
 # Helpers
