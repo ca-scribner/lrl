@@ -3,7 +3,7 @@ from lrl.data_stores import GeneralIterationData, WalkStatistics, DictWithHistor
 import logging
 logger = logging.getLogger(__name__)
 
-CONVERGENCE_TOLERANCE = 0.00001
+CONVERGENCE_TOLERANCE = 0.001
 MAX_ITERATIONS = 500
 MIN_ITERATIONS = 2
 SOLVER_ITERATION_DATA_FIELDS = ['iteration', 'time', 'delta_max', 'delta_mean', 'policy_changes', 'converged']
@@ -140,6 +140,9 @@ class BaseSolver:
         """
         if score_while_training is None:
             score_while_training = self.score_while_training
+
+        if raise_if_not_converged is None:
+            raise_if_not_converged = self.raise_if_not_converged
 
         logger.info(f"Solver iterating to convergence ({self.convergence_desc} or iters>{self.max_iters})")
 
@@ -286,6 +289,11 @@ def q_from_outcomes(outcomes, gamma, value_function):
     q_value = 0.0
     for outcome in outcomes:
         probability, next_state, reward, is_terminal = outcome
-        # q_values[this_action] += Probability of Outcome * (Immediate Reward + Discounted Future Value)
-        q_value += probability * (reward + gamma * value_function[next_state])
+        if is_terminal:
+            # q_values[this_action] += Probability of Outcome * (Immediate Reward)
+            # (A terminal state has no discounted future value)
+            q_value += probability * reward
+        else:
+            # q_values[this_action] += Probability of Outcome * (Immediate Reward + Discounted Future Value)
+            q_value += probability * (reward + gamma * value_function[next_state])
     return q_value

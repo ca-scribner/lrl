@@ -291,7 +291,7 @@ def policy_evaluation_iterative(value_function, env, gamma, policy=None, evaluat
         (TO BE UPDATED): Value Function computed
         (TO BE UPDATED): (returned if evaluation_type == max) Greedy policy corresponding to returned Value Function
     """
-    logger.info(f"Computing policy_evaluation for evaluation_type == {evaluation_type}")
+    logger.debug(f"Computing policy_evaluation for evaluation_type == {evaluation_type}")
 
     delta_max = np.inf
     this_iter = 0
@@ -340,7 +340,7 @@ def policy_evaluation_iterative(value_function, env, gamma, policy=None, evaluat
         this_iter += 1
         value_function = value_new
 
-    logger.info(f"policy_evaluation completed after {this_iter} iters")
+    logger.debug(f"policy_evaluation completed after {this_iter} iters")
 
     if evaluation_type == 'max':
         return value_function, policy_new

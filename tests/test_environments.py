@@ -87,7 +87,7 @@ def test_environment_get_terminal_locations(supply_racetrack_5x4):
     # Racetrack knows its own terminal locations through a different method.  Compare to get_terminal_locations
     assert rt.is_location_terminal == utils.get_terminal_locations(rt)
 
-    lake = environments.frozen_lake.FrozenLakeEnv()
+    lake = environments.frozen_lake.RewardingFrozenLakeEnv()
     # Compare to a known solution
     assert lake.is_location_terminal == lake_4x4_is_terminal
     # This test is redundant because lake uses get_terminal_locations in its definition

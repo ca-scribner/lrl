@@ -325,6 +325,7 @@ def plot_episodes(episodes, env=None, add_env_to_plot=True, max_episodes=MAX_PAT
     Args:
         episodes (list, WalkStatistics): Series of walks to be plotted.  If WalkStatistics instance, .walks will be
                                       extracted
+        env:
         add_env_to_plot:
         alpha:
         color:
@@ -336,10 +337,7 @@ def plot_episodes(episodes, env=None, add_env_to_plot=True, max_episodes=MAX_PAT
 
     """
     # Attempt to extract walks from a WalkStatistics instance
-    try:
-        episodes = episodes.walks
-    except:
-        pass
+    episodes = getattr(episodes, 'walks', episodes)
 
     fig, ax = get_ax(ax)
 
@@ -351,7 +349,8 @@ def plot_episodes(episodes, env=None, add_env_to_plot=True, max_episodes=MAX_PAT
         i_episodes = np.random.choice(i_episodes, size=max_episodes, replace=False)
 
     if alpha is None:
-        alpha = max(1.0 / len(i_episodes), 0.02)
+        # Below 0.002, the lines don't plot at all!
+        alpha = max(1.0 / len(i_episodes), 0.002)
 
     for i_episode in i_episodes:
         episode = episodes[i_episode]

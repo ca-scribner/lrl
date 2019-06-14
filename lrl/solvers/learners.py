@@ -23,7 +23,6 @@ class QLearning(BaseSolver):
 
     """
     def __init__(self, env, value_function_tolerance=CONVERGENCE_TOLERANCE,
-                 discount_factor=0.9,
                  alpha=None, epsilon=None, max_iters=MAX_ITERATIONS, min_iters=MIN_ITERATIONS,
                  num_episodes_for_convergence=NUM_EPISODES_FOR_CONVERGENCE,
                  **kwargs):
@@ -67,7 +66,6 @@ class QLearning(BaseSolver):
                 'initial_value': float(epsilon),
             }
 
-        self.discount_factor = discount_factor
         self.transitions = 0
 
         # Estimate of Q, keyed by ((state), (action)) where state/action can be integers or qualified tuples
@@ -114,16 +112,20 @@ class QLearning(BaseSolver):
         action = self.choose_epsilon_greedy_action(state, self.epsilon)
         next_state, reward, is_terminal, _ = self.env.step(action)
 
-        q_best_next_action = np.max(self.get_q_at_state(next_state))
+        # If is_terminal, then the future value of the next action is 0 (game is ended so no future value available)
+        if is_terminal:
+            q_best_next_action = 0.0
+        else:
+            q_best_next_action = np.max(self.get_q_at_state(next_state))
 
         # Compute Q-Learning update (TD)
         # TODO: Is this eq different if this is a terminal step?  Memory says it should be different
         try:
             # This will work is q is indexed by integer state and action
-            td = reward + self.discount_factor * q_best_next_action - self.q[state, action]
+            td = reward + self.gamma * q_best_next_action - self.q[state, action]
         except KeyError:
             # This will work if q is indexed by tuple state and action (merge the tuples for q index)
-            td = reward + self.discount_factor * q_best_next_action - self.q[state + action]
+            td = reward + self.gamma * q_best_next_action - self.q[state + action]
 
         try:
             self.q[(int(state), int(action))] += self.alpha * td
