@@ -146,8 +146,8 @@ def plot_solver_results(env, solver=None, policy=None, value=None, savefig=None,
         if policy is not None or value is not None:
             raise ValueError("Invalid input - policy or value cannot be specified if solver given as input")
         else:
-            policy = solver.policy
-            value = solver.value
+            policy = getattr(solver, 'policy', None)
+            value = getattr(solver, 'value', None)
 
     # Break policy and value, which are dict-like containers mapping state->X, into a series of numpy arrays shaped the
     # same as env.desc.  See policy_dict_to_array() for more information
