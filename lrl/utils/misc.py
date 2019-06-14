@@ -21,7 +21,7 @@ def print_dict_by_row(d, fmt='{key:20s}: {val:d}'):
         print(fmt.format(key=str(k), val=d[k]))
 
 
-def count_dict_differences(d1, d2, raise_on_missing_key=True, print_differences=False):
+def count_dict_differences(d1, d2, keys=None, raise_on_missing_key=True, print_differences=False):
     """
     Return the number of differences between two dictionaries.  Useful to compare two policies stored as dictionaries.
 
@@ -32,6 +32,7 @@ def count_dict_differences(d1, d2, raise_on_missing_key=True, print_differences=
     Args:
         d1 (dict): Dictionary to compare
         d2 (dict): Dictionary to compare
+        keys (list): Optional list of keys to consider for differences.  If None, all keys will be considered
         raise_on_missing_key (bool): If true, raise KeyError on any keys not shared by both dictionaries
         print_differences (bool): If true, print all differences to screen
 
@@ -39,7 +40,11 @@ def count_dict_differences(d1, d2, raise_on_missing_key=True, print_differences=
         int: Number of differences between the two dictionaries
 
     """
-    keys = d1.keys() | d2.keys()
+    if keys is None:
+        keys = d1.keys() | d2.keys()
+    else:
+        # Coerce into a set to remove duplicates
+        keys = set(keys)
     differences = 0
     for k in keys:
         try:
