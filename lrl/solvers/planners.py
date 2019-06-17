@@ -13,17 +13,33 @@ MAX_POLICY_EVAL_ITERS_LAST_IMPROVEMENT = 1000
 
 
 class ValueIteration(BaseSolver):
-    """Solver for value iteration
+    """
+    Solver for value iteration
 
-    FUTURE: Improve this docstring.  Add refs
+    Implemented as per Sutton and Barto's Reinforcement Learning (http://www.incompleteideas.net/book/RLbook2018.pdf,
+    page 82).
+
+    Examples:
+        See examples directory
+
+    Attributes:
+        value (DictWithHistory): Space-efficient dict-like storage of the current and all former value functions
+        See BaseSolver class for additional
+
+    Args:
+        value_function_initial_value (float): Value to initialize all elements of the value function to
+        See BaseSolver class for additional
+
+    Returns:
+        None
     """
     def __init__(self, env, value_function_initial_value=0.0, **kwargs):
         super().__init__(env, **kwargs)
 
         # String description of convergence criteria
-        self.convergence_desc = f"Max delta in value function < {self.value_function_tolerance}"
+        self._convergence_desc = f"Max delta in value function < {self._value_function_tolerance}"
 
-        self.value = DictWithHistory(timepoint_mode='explicit', tolerance=self.value_function_tolerance * 0.1)
+        self.value = DictWithHistory(timepoint_mode='explicit', tolerance=self._value_function_tolerance * 0.1)
         for k in self.env.P.keys():
             self.value[k] = value_function_initial_value
 
@@ -40,50 +56,54 @@ class ValueIteration(BaseSolver):
         Returns:
             None
         """
-        logger.debug(f"Performing iteration {self.iteration} of value iteration")
+        logger.debug(f"Performing iteration {self._iteration} of value iteration")
 
         timer = Timer()
 
-        value_new, policy_new = policy_evaluation(value_function=self.value.to_dict(), env=self.env, gamma=self.gamma,
+        # Use policy_evaluation helper function, which lets us combine most PolicyIteration and ValueIteration
+        # computation into a single routine
+        value_new, policy_new = policy_evaluation(value_function=self.value.to_dict(), env=self.env, gamma=self._gamma,
                                                   evaluation_type='max', max_iters=1,
-                                                  tolerance=self.value_function_tolerance)
+                                                  tolerance=self._value_function_tolerance)
 
         delta_max, delta_mean = dict_differences(value_new, self.value)
         policy_changes = count_dict_differences(policy_new, self.policy)
 
         # Log metadata about iteration
-        self.iteration_data.add({'iteration': self.iteration,
+        self.iteration_data.add({'iteration': self._iteration,
                                  'time': timer.elapsed(),
                                  'delta_mean': delta_mean,
                                  'delta_max': delta_max,
                                  'policy_changes': policy_changes,
-                                 'converged': bool(delta_max <= self.value_function_tolerance),
+                                 'converged': bool(delta_max <= self._value_function_tolerance),
                                  })
         # Use converged function to assess convergence and add that back into iteration_data
         # (prevents duplicating the convergence logic, at the expense of more complicated logging logic)
         self.iteration_data.get(-1)['converged'] = self.converged()
-        logger.debug(f"Iteration {self.iteration} complete with d_max={delta_max}, policy_changes={policy_changes}")
+        logger.debug(f"Iteration {self._iteration} complete with d_max={delta_max}, policy_changes={policy_changes}")
 
         # Store results and increment counter
         self.value.update(value_new)
         self.value.increment_timepoint()
         self.policy.update(policy_new)
         self.policy.increment_timepoint()
-        self.iteration += 1
+        self._iteration += 1
 
     def converged(self):
         """
         Returns True if solver is converged.
 
+        Test convergence by comparing the latest value function delta_max to the convergence tolerance
+
         Returns:
             bool: Convergence status (True=converged)
         """
-        if self.iteration < self.min_iters:
-            logger.debug(f"Not converged: iteration ({self.iteration}) < min_iters ({self.min_iters})")
+        if self._iteration < self._min_iters:
+            logger.debug(f"Not converged: iteration ({self._iteration}) < min_iters ({self._min_iters})")
             return False
         else:
             try:
-                return self.iteration_data.get(-1)['delta_max'] <= self.value_function_tolerance
+                return self.iteration_data.get(-1)['delta_max'] <= self._value_function_tolerance
             except IndexError:
                 # Data store has no records and thus cannot be converged
                 return False
@@ -92,9 +112,30 @@ class ValueIteration(BaseSolver):
 
 
 class PolicyIteration(BaseSolver):
-    """Solver for policy iteration
+    """
+    Solver for policy iteration
 
-    FUTURE: Improve this docstring.  Add refs
+    Implemented as per Sutton and Barto's Reinforcement Learning (http://www.incompleteideas.net/book/RLbook2018.pdf,
+    page 80).
+
+    Examples:
+        See examples directory
+
+    Attributes:
+        value (DictWithHistory): Space-efficient dict-like storage of the current and all former value functions
+        See BaseSolver class for additional
+
+    Args:
+        value_function_initial_value (float): Value to initialize all elements of the value function to
+        max_policy_eval_iters_per_improvement
+        policy_evaluation_type (str): Type of solution method for calculating policy (see policy_evaluation() for more
+                                      details.  Typical usage should not need to change this as it will make
+                                      calculations slower and more memory intensive)
+        See BaseSolver class for additional
+
+    Returns:
+        None
+
     """
     def __init__(self, env, value_function_initial_value=0.0, max_policy_eval_iters_per_improvement=10,
                  policy_evaluation_type='on-policy-iterative', **kwargs):
@@ -107,9 +148,9 @@ class PolicyIteration(BaseSolver):
         self.policy_evaluation_type = policy_evaluation_type
 
         # String description of convergence criteria
-        self.convergence_desc = "1 iteration without change in policy"
+        self._convergence_desc = "1 iteration without change in policy"
 
-        self.value = DictWithHistory(timepoint_mode='explicit', tolerance=self.value_function_tolerance * 0.1)
+        self.value = DictWithHistory(timepoint_mode='explicit', tolerance=self._value_function_tolerance * 0.1)
         for k in self.env.P.keys():
             self.value[k] = value_function_initial_value
 
@@ -125,9 +166,9 @@ class PolicyIteration(BaseSolver):
         """
         if max_iters is None:
             max_iters = self.max_policy_eval_iters_per_improvement
-        value_new = policy_evaluation(value_function=self.value.to_dict(), env=self.env, policy=self.policy, gamma=self.gamma,
+        value_new = policy_evaluation(value_function=self.value.to_dict(), env=self.env, policy=self.policy, gamma=self._gamma,
                                       evaluation_type=self.policy_evaluation_type,
-                                      tolerance=self.value_function_tolerance,
+                                      tolerance=self._value_function_tolerance,
                                       max_iters=max_iters)
 
         self.value.update(value_new)
@@ -147,8 +188,8 @@ class PolicyIteration(BaseSolver):
             int: (if return_differences==True) Number of differences between the old and new policies
         """
         value_new, policy_new = policy_evaluation(value_function=self.value.to_dict(), env=self.env,
-                                                  gamma=self.gamma, evaluation_type='max',
-                                                  tolerance=self.value_function_tolerance)
+                                                  gamma=self._gamma, evaluation_type='max',
+                                                  tolerance=self._value_function_tolerance)
 
         if return_differences:
             returned = count_dict_differences(policy_new, self.policy)
@@ -174,7 +215,7 @@ class PolicyIteration(BaseSolver):
         """
         timer = Timer()
 
-        logger.debug(f"Performing iteration {self.iteration} of policy iteration")
+        logger.debug(f"Performing iteration {self._iteration} of policy iteration")
         value_old = self.value.to_dict()
 
         # Compute a value function for the current policy
@@ -191,14 +232,14 @@ class PolicyIteration(BaseSolver):
         # we have the iteration limit self.max_policy_eval_per_improvement.  But to ensure we haven't missed any policy
         # changes by making this simplification, we ensure whenever we see policy_changes == 0 (eg: we think PI has
         # converged) that we've fully converged the value function
-        if policy_changes == 0 and delta_max > self.value_function_tolerance:
+        if policy_changes == 0 and delta_max > self._value_function_tolerance:
             self._policy_evaluation(max_iters=MAX_POLICY_EVAL_ITERS_LAST_IMPROVEMENT)
 
             # Recompute delta given fully converged solution
             delta_max, delta_mean = dict_differences(self.value, value_old)
 
         # Log metadata about iteration
-        self.iteration_data.add({'iteration': self.iteration,
+        self.iteration_data.add({'iteration': self._iteration,
                                  'time': timer.elapsed(),
                                  'delta_mean': delta_mean,
                                  'delta_max': delta_max,
@@ -208,19 +249,21 @@ class PolicyIteration(BaseSolver):
         # Use converged function to assess convergence and add that back into iteration_data
         # (prevents duplicating the convergence logic, at the expense of more complicated logging logic)
         self.iteration_data.get(-1)['converged'] = self.converged()
-        logger.debug(f"Iteration {self.iteration} complete with d_max={delta_max}, policy_changes={policy_changes}")
+        logger.debug(f"Iteration {self._iteration} complete with d_max={delta_max}, policy_changes={policy_changes}")
 
-        self.iteration += 1
+        self._iteration += 1
 
     def converged(self):
         """
         Returns True if solver is converged.
 
+        Judge convergence by checking whether the most recent policy iteration resulted in any changes in policy
+
         Returns:
             bool: Convergence status (True=converged)
         """
-        if self.iteration < self.min_iters:
-            logger.debug(f"Not converged: iteration ({self.iteration}) < min_iters ({self.min_iters})")
+        if self._iteration < self._min_iters:
+            logger.debug(f"Not converged: iteration ({self._iteration}) < min_iters ({self._min_iters})")
             return False
         else:
             try:
@@ -252,10 +295,10 @@ def policy_evaluation(value_function, env, gamma, policy=None, evaluation_type='
         This returns the value function that indicates the value if following the given policy
 
     Args:
-        value_function (TO BE UPDATED): The current estimate of the value function
+        value_function (dict): The current estimate of the value function
         env (gym.Env.Discrete subclass): Environment describing the MDP to be planned
         gamma (float): Discount factor
-        policy (TO BE UPDATED): (Required if evaluation_type=='on-policy') Policy to evaluate a value function for
+        policy (dict): (Required if evaluation_type=='on-policy') Policy to evaluate a value function for
         evaluation_type (str): One of:
             max: Compute the greedy value function (compute V using the greedy action for all actions)
             on-policy-iterative: Compute the value function given a fixed policy iteratively
@@ -266,8 +309,8 @@ def policy_evaluation(value_function, env, gamma, policy=None, evaluation_type='
                    elementwise difference between iterations is less than tolerance)
 
     Returns:
-        (TO BE UPDATED): Value Function computed
-        (TO BE UPDATED): (returned if evaluation_type == max) Greedy policy corresponding to returned Value Function
+        (dict): Value Function computed here
+        (dict): (returned if evaluation_type == max) Greedy policy corresponding to returned Value Function
     """
     if evaluation_type == 'max' or evaluation_type == 'on-policy-iterative':
         if evaluation_type == 'on-policy-iterative':
@@ -285,11 +328,14 @@ def policy_evaluation_iterative(value_function, env, gamma, policy=None, evaluat
     """
     Compute the value function of either a given policy of the best available policy (argmax) iteratively
 
+    Implemented as per Sutton and Barto's Reinforcement Learning (http://www.incompleteideas.net/book/RLbook2018.pdf,
+    page 82).
+
     See docstring for policy_evaluation() for more details.
 
     Returns:
-        (TO BE UPDATED): Value Function computed
-        (TO BE UPDATED): (returned if evaluation_type == max) Greedy policy corresponding to returned Value Function
+        (dict): Value Function computed here
+        (dict): (returned if evaluation_type == max) Greedy policy corresponding to returned Value Function
     """
     logger.debug(f"Computing policy_evaluation for evaluation_type == {evaluation_type}")
 

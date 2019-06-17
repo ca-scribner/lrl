@@ -8,58 +8,97 @@ MAX_ITERATIONS = 500
 MIN_ITERATIONS = 2
 SOLVER_ITERATION_DATA_FIELDS = ['iteration', 'time', 'delta_max', 'delta_mean', 'policy_changes', 'converged']
 
-DEFAULT_N_EVALS = 500
-DEFAULT_TRAINS_PER_EVAL = 500
 SCORING_SUMMARY_DATA_FIELDS = ['iteration', 'reward_mean', 'reward_median', 'reward_std', 'reward_min', 'reward_max',
                                    'steps_mean', 'steps_median', 'steps_std', 'steps_min', 'steps_max']
 MAX_STEPS_PER_EPISODE = 100
 
+DEFAULT_N_EVALS = 500
+DEFAULT_TRAINS_PER_EVAL = 500
+DEFAULT_SCORE_WHILE_TRAINING = {
+    'n_evals': DEFAULT_N_EVALS,
+    'n_trains_per_eval': DEFAULT_TRAINS_PER_EVAL,
+    }
+
 
 class BaseSolver:
-    """Base class for solvers
-
-    FUTURE: Describe attributes.  Need to include things like policy is keyed by state tuple/index, etc.
-    Dont forget value_function_tolerance can be for value or Q
-    FUTURE: Explain score_while_training (true = 50 evals every 250 trains.  dict of n_evals, n_trains_per_eval can
-    change that
     """
-    def __init__(self, env, gamma=0.9, value_function_tolerance=CONVERGENCE_TOLERANCE, policy_init_type='zeros',
+    Base class for solvers
+
+    Examples:
+        See examples directory
+
+    Attributes:
+        env: Environment passed as input
+        policy (DictWithHistory): Space-efficient dict-like storage of the current and all former policies
+        iteration_data (GeneralIterationData): Data describing iteration results during solving of the environment (eg:
+                                               time for this iteration, maximum change in value function for this
+                                               iteration, number of policy changes this iteration, is iteration
+                                               converged, ...)
+        scoring_summary (GeneralIterationData): Summary data from scoring runs during training if score_while_training
+                                                is enabled.  Data includes mean reward for a given scoring run, etc.
+        scoring_walk_statistics (dict): Detailed scoring data from scoring runs during training if score_while_training
+                                                is enabled.  Data is indexed by iteration number (from scoring_summary)
+                                                and contains data for each walk in that scoring run as a WalkStatistics
+                                                instance
+
+    Args:
+        env: Environment instance, such as from RaceTrack() or RewardingFrozenLake()
+        gamma (float): Discount factor
+        value_function_tolerance (float): Tolerance for convergence of value function during solving (also used for
+                                          Q (state-action) value function tolerance
+        policy_init_mode (str): Initialization mode for policy.  See init_policy() for more detail
+        max_iters (int): Maximum number of iterations to solve environment
+        min_iters (int): Minimum number of iterations before checking for solver convergence
+        raise_if_not_converged (bool): If True, will raise exception when environment hits max_iters without convergence
+                                       If False, a warning will be logged
+        max_steps_per_episode (int): Maximum number of steps allowed per episode (helps when evaluating policies that
+                                     can lead to infinite walks)
+        score_while_training (dict, bool): Dict specifying whether the policy should be scored during training (eg:
+                                           test how well a policy is doing every N iterations)
+                                           If dict, must be of format:
+                                                n_trains_per_eval (int): Number of training iters between evaluations
+                                                n_evals (int): Number of episodes for a given policy evaluation
+                                           If True, score with default settings of
+                                                n_trains_per_eval: 500
+                                                n_evals: 500
+                                           If False, do not score during training
+
+    Returns:
+        None
+    """
+    def __init__(self, env, gamma=0.9, value_function_tolerance=CONVERGENCE_TOLERANCE, policy_init_mode='zeros',
                  max_iters=MAX_ITERATIONS, min_iters=MIN_ITERATIONS, max_steps_per_episode=MAX_STEPS_PER_EPISODE,
                  score_while_training=False, raise_if_not_converged=False):
         self.env = env
-        self.value_function_tolerance = value_function_tolerance
-        self.max_iters = max_iters
-        self.min_iters = min_iters
+        self._value_function_tolerance = value_function_tolerance
+        self._max_iters = max_iters
+        self._min_iters = min_iters
+        self._max_steps_per_episode = max_steps_per_episode
+
+        # String description of convergence criteria used here
+        self._convergence_desc = "Criteria description not implemented"
+        self._raise_if_not_converged = raise_if_not_converged
 
         # Discount Factor
-        self.gamma = gamma
+        self._gamma = gamma
 
         # Initialize policy and value data storage.
         # Use dictionaries that are indexed the same as the environment's transition matrix (P), which is indexed by
         # state denoted as either an index or a tuple
-        self.policy_init_type = None
+        self._policy_init_type = None
         self.policy = None
-        self.init_policy(init_type=policy_init_type)
+        self.init_policy(init_type=policy_init_mode)
 
         # Storage for iteration metadata
-        self.iteration = 0
+        self._iteration = 0
         self.iteration_data = GeneralIterationData(columns=SOLVER_ITERATION_DATA_FIELDS)
 
-        # String description of convergence criteria used here
-        self.convergence_desc = "Criteria description not implemented"
-        self.raise_if_not_converged = raise_if_not_converged
-
         if score_while_training is True:
-            self.score_while_training = {
-                'n_evals': DEFAULT_N_EVALS,
-                'n_trains_per_eval': DEFAULT_TRAINS_PER_EVAL,
-            }
+            self._score_while_training = DEFAULT_SCORE_WHILE_TRAINING
         else:
-            self.score_while_training = score_while_training
-
+            self._score_while_training = score_while_training
         self.scoring_summary = GeneralIterationData(columns=SCORING_SUMMARY_DATA_FIELDS)
         self.scoring_walk_statistics = {}
-        self.max_steps_per_episode = max_steps_per_episode
 
     def init_policy(self, init_type=None):
         """
@@ -78,7 +117,7 @@ class BaseSolver:
         """
         valid_init_types = ['zeros', 'random']
         if init_type in valid_init_types:
-            self.policy_init_type = init_type
+            self._policy_init_type = init_type
         elif init_type is None:
             pass
         else:
@@ -88,10 +127,10 @@ class BaseSolver:
         state_keys = list(self.env.P.keys())
 
         self.policy = DictWithHistory(timepoint_mode='explicit')
-        if self.policy_init_type == 'zeros':
+        if self._policy_init_type == 'zeros':
             for k in state_keys:
                 self.policy[k] = 0
-        elif self.policy_init_type == 'random':
+        elif self._policy_init_type == 'random':
             for k in state_keys:
                 self.policy[k] = self.env.action_space.sample()
 
@@ -105,17 +144,14 @@ class BaseSolver:
 
     def iterate(self):
         """
-        Perform the next iteration of the solver.
+        Perform the a single iteration of the solver.
 
         This may be an iteration through all states in the environment (like in policy iteration) or obtaining and
-        learning from a single experience (like in Q-Learning
+        learning from a single experience (like in Q-Learning)
 
         This method should update self.value and may update self.policy, and also commit iteration statistics to
         self.iteration_data.  Unless the subclass implements a custom self.converged, self.iteration_data should include
         a boolean entry for "converged", which is used by the default converged() function.
-
-        # FUTURE: Should this be named differently?  Step feels intuitive, but can be confused with stepping in the env
-        #          Could also do iteration, but doesn't imply that we're just doing a single iteration.
 
         Returns:
             None
@@ -127,7 +163,7 @@ class BaseSolver:
         Perform self.iterate repeatedly until convergence, optionally scoring the current policy periodically
 
         Side Effects:
-            FUTURE: NEED TO BE ADDED
+            Many, but depends on the subclass of the solver's .iterate()
 
         Args:
             raise_if_not_converged (bool): If true, will raise an exception if convergence is not reached before hitting
@@ -139,36 +175,36 @@ class BaseSolver:
             None
         """
         if score_while_training is None:
-            score_while_training = self.score_while_training
+            score_while_training = self._score_while_training
 
         if raise_if_not_converged is None:
-            raise_if_not_converged = self.raise_if_not_converged
+            raise_if_not_converged = self._raise_if_not_converged
 
-        logger.info(f"Solver iterating to convergence ({self.convergence_desc} or iters>{self.max_iters})")
+        logger.info(f"Solver iterating to convergence ({self._convergence_desc} or iters>{self._max_iters})")
 
-        while (not self.converged()) and (self.iteration < self.max_iters):
+        while (not self.converged()) and (self._iteration < self._max_iters):
             self.iterate()
 
-            if score_while_training and (self.iteration % score_while_training['n_trains_per_eval'] == 0):
+            if score_while_training and (self._iteration % score_while_training['n_trains_per_eval'] == 0):
                 logger.info(f'Current greedy policy being scored {score_while_training["n_evals"]} times at iteration '
-                            f'{self.iteration}')
-                self.scoring_walk_statistics[self.iteration] = self.score_policy(iters=score_while_training['n_evals'])
+                            f'{self._iteration}')
+                self.scoring_walk_statistics[self._iteration] = self.score_policy(iters=score_while_training['n_evals'])
 
-                data = {'iteration': self.iteration}
-                data.update(self.scoring_walk_statistics[self.iteration].get_statistics())
+                data = {'iteration': self._iteration}
+                data.update(self.scoring_walk_statistics[self._iteration].get_statistics())
                 self.scoring_summary.add(data)
                 logger.info(f'Current greedy policy achieved: '
                             f'r_mean = {data["reward_mean"]}, '
                             f'r_max = {data["reward_max"]}')
             converged = self.converged()
-            logger.debug(f'{self.iteration}: delta_max = {self.iteration_data.get(i=-1)["delta_max"]:.1e}, '
+            logger.debug(f'{self._iteration}: delta_max = {self.iteration_data.get(i=-1)["delta_max"]:.1e}, '
                          f'policy_changes = {self.iteration_data.get(i=-1)["policy_changes"]}, '
                          f'converged = {converged}')
-        if self.iteration >= self.max_iters:
+        if self._iteration >= self._max_iters:
             if raise_if_not_converged:
-                raise Exception(f"Max iterations ({self.max_iters}) reached - solver did not converge")
+                raise Exception(f"Max iterations ({self._max_iters}) reached - solver did not converge")
             else:
-                logger.warning(f"Max iterations ({self.max_iters}) reached - solver did not converge")
+                logger.warning(f"Max iterations ({self._max_iters}) reached - solver did not converge")
 
     def converged(self):
         """
@@ -180,8 +216,8 @@ class BaseSolver:
         Returns:
             bool: Convergence status (True=converged)
         """
-        if self.iteration < self.min_iters:
-            logger.debug(f"Not converged: iteration ({self.iteration}) < min_iters ({self.min_iters})")
+        if self._iteration < self._min_iters:
+            logger.debug(f"Not converged: iteration ({self._iteration}) < min_iters ({self._min_iters})")
             return False
         else:
             try:
@@ -211,14 +247,12 @@ class BaseSolver:
             boolean indicating if the walk was terminal according to the environment
         """
         if max_steps is None:
-            max_steps = self.max_steps_per_episode
+            max_steps = self._max_steps_per_episode
         self.env.reset()
         if initial_state:
             # Override starting state
             self.env.s = initial_state
         states = [self.env.s]
-        #
-        # states = [self.env.reset()]
         rewards = [0.0]
         terminal = False
 
@@ -238,7 +272,7 @@ class BaseSolver:
 
     def score_policy(self, iters=500, max_steps=None, initial_state=None):
         """
-        Score the current policy by performing 'iters' greedy walks through the environment and returning statistics
+        Score the current policy by performing iters greedy walks through the environment and returning statistics
 
         Side Effects:
             self.env will be reset
@@ -253,10 +287,10 @@ class BaseSolver:
             WalkStatistics: Object containing statistics about the walks (rewards, number of steps, etc.)
         """
         if max_steps is None:
-            max_steps = self.max_steps_per_episode
+            max_steps = self._max_steps_per_episode
         statistics = WalkStatistics()
 
-        for iter in range(iters):
+        for _ in range(iters):
             # Walk through the environment following the current policy, up to max_steps total steps
             states, rewards, terminal = self.run_policy(max_steps=max_steps, initial_state=initial_state)
             statistics.add(reward=sum(rewards), walk=states, terminal=terminal)
@@ -285,10 +319,6 @@ def q_from_outcomes(outcomes, gamma, value_function):
     # Each action can have more than one result.  Results are in a list of tuples of
     # (Probability, NextState (index or tuple), Reward for this action (float), IsTerminal (bool))
     # Sum contributions from all outcomes
-    # FUTURE: Special handling of terminal state in value iteration?  Works itself out if they all point to
-    #       themselves with 0 reward, but really we just don't need to compute them.  And if we don't zero
-    #       their value somewhere, we've gotta wait for the discount factor to decay them to zero from the
-    #       initialized value.
     q_value = 0.0
     for outcome in outcomes:
         probability, next_state, reward, is_terminal = outcome

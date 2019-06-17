@@ -1,16 +1,4 @@
-# FUTURE: How should this actually be formatted?  Probably should remove the import * at least
+from .planners import PolicyIteration, ValueIteration
+from .learners import QLearning
 
-# from .base import *
-
-# from .policy_iteration import *
-# from .q_learning import *
-from .base_solver import *
-from .planners import *
-from .learners import *
-# from .value_iteration import *
-# from .policy_iteration import *
-
-# __all__ = ['base', 'policy_iteration', 'q_learning', 'value_iteration']
-# Doing this will pass the individual modules as part of all, meaning we access them by
-# solvers.value_iteration.ValueIteration
-# __all__ = ['base_solver', 'value_iteration']
+__all__ = ['PolicyIteration', 'ValueIteration', 'QLearning']

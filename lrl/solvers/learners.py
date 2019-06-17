@@ -37,7 +37,7 @@ class QLearning(BaseSolver):
                 'initial_value': 0.1,
                 'initial_timestep': 0,
                 'final_value': 0.025,
-                'final_timestep': self.max_iters,
+                'final_timestep': self._max_iters,
             }
         elif isinstance(alpha, dict):
             self._alpha_settings = alpha
@@ -55,7 +55,7 @@ class QLearning(BaseSolver):
                 'initial_value': 0.25,
                 'initial_timestep': 0,
                 'final_value': 0.05,
-                'final_timestep': self.max_iters,
+                'final_timestep': self._max_iters,
             }
         elif isinstance(epsilon, dict):
             self._epsilon_settings = epsilon
@@ -82,16 +82,16 @@ class QLearning(BaseSolver):
 
         # String description of convergence criteria
         self.convergence_desc = f"{self.num_episodes_for_convergence} episodes with max delta in Q function < " \
-            f"{self.value_function_tolerance}"
+            f"{self._value_function_tolerance}"
 
 
     @property
     def alpha(self):
-        return decay_functions(self._alpha_settings)(self.iteration)
+        return decay_functions(self._alpha_settings)(self._iteration)
 
     @property
     def epsilon(self):
-        return decay_functions(self._epsilon_settings)(self.iteration)
+        return decay_functions(self._epsilon_settings)(self._iteration)
 
     def step(self, count_transition=True):
         """
@@ -122,10 +122,10 @@ class QLearning(BaseSolver):
         # TODO: Is this eq different if this is a terminal step?  Memory says it should be different
         try:
             # This will work is q is indexed by integer state and action
-            td = reward + self.gamma * q_best_next_action - self.q[state, action]
+            td = reward + self._gamma * q_best_next_action - self.q[state, action]
         except KeyError:
             # This will work if q is indexed by tuple state and action (merge the tuples for q index)
-            td = reward + self.gamma * q_best_next_action - self.q[state + action]
+            td = reward + self._gamma * q_best_next_action - self.q[state + action]
 
         try:
             self.q[(int(state), int(action))] += self.alpha * td
@@ -215,10 +215,10 @@ class QLearning(BaseSolver):
         Returns:
 
         """
-        if self.iteration % 500 == 0:
-            logger.info(f"Performing iteration (episode) {self.iteration} of Q-Learning")
+        if self._iteration % 500 == 0:
+            logger.info(f"Performing iteration (episode) {self._iteration} of Q-Learning")
         else:
-            logger.debug(f"Performing iteration (episode) {self.iteration} of Q-Learning")
+            logger.debug(f"Performing iteration (episode) {self._iteration} of Q-Learning")
         timer = Timer()
         states = [self.env.reset()]
         rewards = [0.]
@@ -227,7 +227,7 @@ class QLearning(BaseSolver):
         policy_old = self.policy.to_dict()
 
         # Perform a single episode, learning along the way (this implicitly updates self.q)
-        for i_step in range(self.max_steps_per_episode):
+        for i_step in range(self._max_steps_per_episode):
             transition, this_delta_q = self.step()
             delta_max = max(delta_max, this_delta_q)
             state, reward, next_state, is_terminal = transition
@@ -236,7 +236,7 @@ class QLearning(BaseSolver):
 
             if is_terminal:
                 break
-        logger.debug(f"Iteration {self.iteration} completed with r={sum(rewards)} in {len(states)} steps "
+        logger.debug(f"Iteration {self._iteration} completed with r={sum(rewards)} in {len(states)} steps "
                      f"(terminal={is_terminal})")
 
         # Compute new greedy policy to compare to old policy
@@ -250,7 +250,7 @@ class QLearning(BaseSolver):
         logger.debug(f"Walk resulted in delta_max = {delta_max}, and {policy_changes} policy "
                      f"changes")
 
-        self.iteration_data.add({'iteration': self.iteration,
+        self.iteration_data.add({'iteration': self._iteration,
                                  'time': timer.elapsed(),
                                  'delta_max': delta_max,
                                  'steps': len(states),
@@ -268,14 +268,14 @@ class QLearning(BaseSolver):
         # Increment counters
         self.q.increment_timepoint()
         self.policy.increment_timepoint()
-        self.iteration += 1
+        self._iteration += 1
 
     def converged(self):
         logger.debug(f'Assessing convergence')
         # Try to use a previously memorized convergence result (converged field indicates whether this convergence
         # test was previously True/False for at this iteration)
-        if self.iteration < self.min_iters:
-            logger.debug(f"Not converged: iteration ({self.iteration}) < min_iters ({self.min_iters})")
+        if self._iteration < self._min_iters:
+            logger.debug(f"Not converged: iteration ({self._iteration}) < min_iters ({self._min_iters})")
             return False
         else:
             try:
@@ -293,10 +293,10 @@ class QLearning(BaseSolver):
             # Check last self.num_episodes_for_convergence to ensure they have deltas lower than the convergence limit
             try:
                 for i in range(1, self.num_episodes_for_convergence + 1):
-                    if self.iteration_data.get(-i)['delta_max'] > self.value_function_tolerance:
+                    if self.iteration_data.get(-i)['delta_max'] > self._value_function_tolerance:
                         logger.debug(f"Convergence failed - iter {self.iteration_data.get(-i)['iteration']} (now - {i-1}) "
                                      f"delta_max={self.iteration_data.get(-i)['delta_max']} "
-                                     f"(> {self.value_function_tolerance})")
+                                     f"(> {self._value_function_tolerance})")
                         return False
                 logger.debug(f'Convergence = True')
                 return True
