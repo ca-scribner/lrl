@@ -308,7 +308,7 @@ class Racetrack(discrete.DiscreteEnv):
         self._max_total_accel = max_total_accel
 
         self._char_map = CHAR_MAP
-        self._color_map = {k.encode(): self._char_map[k]['color'] for k in self._char_map}
+        self.color_map = {k.encode(): self._char_map[k]['color'] for k in self._char_map}
 
         # Generate an OpenAI Gym DiscreteEnv style P matrix
         n_states, n_actions, p, starting_probability, action_map, terminal_locations = \

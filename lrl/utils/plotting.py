@@ -102,7 +102,7 @@ def plot_env(env, ax=None, edgecolor='k', resize_figure=True, savefig=None):
             char = env.desc[row, col]
             try:
                 facecolor = env.color_map[char]
-            except Exception as e:
+            except (KeyError, AttributeError) as e:
                 facecolor = 'w'
             patch = plt.Rectangle((x, y), width=1, height=1, edgecolor=edgecolor, facecolor=facecolor, linewidth=0.1)
             ax.add_patch(patch)
@@ -363,7 +363,7 @@ def plot_episodes(episodes, env=None, add_env_to_plot=True, max_episodes=MAX_PAT
     return ax
 
 
-def plot_episode(episode, env, add_env_to_plot=False, alpha=None, color='k', title=None, ax=None):
+def plot_episode(episode, env, add_env_to_plot=True, alpha=None, color='k', title=None, ax=None):
     """
     FUTURE: Docstring
 

@@ -24,9 +24,26 @@ def run_experiment(env, params, output_path):
      params.  Outputting params doesn't cover env though...
 
     Args:
-        env:
-        params:
-        output_path:
+        env: An instanced environment object (eg: Racetrack( or RewardingFrozenLake())
+        params: A dictionary of solver parameters for this run
+        output_path (str): Path to output data (plots and csvs)
+
+    Output to output_path:
+        iteration_data.csv: Data about each solver iteration (shows how long each iteration took, how quickly the solver
+                            converged, etc.)
+        solver_results*.png: Images of policy (and value for planners).  If environment state is defined by xy alone,
+                             a single image is returned.  Else, an image for each additional state is returned (eg:
+                             for state = (x, y, vx, vy), plots of solver_results_vx_vy.png are returned for each
+                             (vx, vy))
+        scored_episodes.csv and scored_episodes.png: Detailed data for each episode taken during the final scoring, and
+                                                     a composite image of those episodes in the environment
+        intermediate_scoring_results.csv: Summary data from each evaluation during training (shows history of how the
+                                          solver improved over time)
+        intermediate_scoring_results_*.png: Composite images of the intermediate scoring results taken during training,
+                                            indexed by the iteration at which they were produced
+        training_episodes.csv and training_episodes.png: Detailed data for each episode taken during training, and an
+                                                         composite image of those episodes exploring the environment
+                                                         (only available for an explorational learner like Q-Learning)
 
     Returns:
         dict of:
@@ -58,7 +75,12 @@ def run_experiment(env, params, output_path):
     scored_results = solver.score_policy()
 
     # Capture results
-    solver.scoring_summary.to_csv(f'{output_path}/intermediate_scoring_results.csv')
+    scored_results.to_csv(f'{output_path}/scored_episodes.csv')
+    try:
+        solver.scoring_summary.to_csv(f'{output_path}/intermediate_scoring_results.csv')
+    except AttributeError:
+        # No intermediate scoring
+        pass
     solver.iteration_data.to_csv(f'{output_path}/iteration_data.csv')
     try:
         solver.walk_statistics.to_dataframe(include_walks=True).to_csv(f'{output_path}/training_episodes.csv')
@@ -68,10 +90,17 @@ def run_experiment(env, params, output_path):
 
     # Plot relevant plots
     plotting.plot_solver_results(env, solver=solver, savefig=f'{output_path}/solver_results')
-    plotting.plot_episodes(scored_results.walks, env, max_episodes=1000, savefig=f'{output_path}/scored_episodes.png')
+    plotting.plot_episodes(scored_results.walks, env, add_env_to_plot=True, max_episodes=1000, savefig=f'{output_path}/scored_episodes')
+    try:
+        for k, ws in solver.scoring_walk_statistics.items():
+            plotting.plot_episodes(ws.walks, env, max_episodes=1000,
+                                   savefig=f'{output_path}/intermediate_scoring_results{str(k)}')
+    except AttributeError:
+        # No intermediate scoring
+        pass
     try:
         plotting.plot_episodes(solver.walk_statistics.walks, env, max_episodes=1000,
-                               savefig=f'{output_path}/training_episodes.png')
+                               savefig=f'{output_path}/training_episodes')
     except AttributeError:
         # walk_statistics only exists for some solvers
         pass
@@ -83,6 +112,7 @@ def run_experiments(environments, solver_param_grid, output_path='./output/'):
     """
     Runs a set of experiments defined by param_grid, writing results to output_path
 
+
     Args:
         environments:
         solver_param_grid:
@@ -90,7 +120,8 @@ def run_experiments(environments, solver_param_grid, output_path='./output/'):
 
     Outputs:
         grid_search_summary.csv: high-level summary of results
-        env_name/case_name: Directory with detailed results for each env/case combination
+        env_name/case_name: Directory with detailed results for each env/case combination See run_experiment for
+                            details on casewise output)
 
     Returns:
         None

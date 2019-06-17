@@ -40,13 +40,13 @@ environments = {
                                              y_accel_limits=(-2, 2),
                                              max_total_accel=2,
                                              ),
-    'rt_10x10_all_oil': environments.get_racetrack(track='10x10_all_oil',
-                                                   x_vel_limits=(-2, 2),
-                                                   y_vel_limits=(-2, 2),
-                                                   x_accel_limits=(-2, 2),
-                                                   y_accel_limits=(-2, 2),
-                                                   max_total_accel=2,
-                                                   ),
+    # 'rt_10x10_all_oil': environments.get_racetrack(track='10x10_all_oil',
+    #                                                x_vel_limits=(-2, 2),
+    #                                                y_vel_limits=(-2, 2),
+    #                                                x_accel_limits=(-2, 2),
+    #                                                y_accel_limits=(-2, 2),
+    #                                                max_total_accel=2,
+    #                                                ),
     'lake_4x4': environments.frozen_lake.RewardingFrozenLakeEnv(is_slippery=True)
 }
 
@@ -55,25 +55,25 @@ environments = {
 # convenient ways to build solver_param_grid
 
 # Settings for PI, VI, and QL
-gammas = [0.5, 0.9, 0.95]
+gammas = [0.5, 0.95]
 
 # Settings for PI and VI
 max_iters_planners = [500]
 
 # Settings for QL only
 alphas = [
-    0.1,  # Constant alpha
+    # 0.1,  # Constant alpha
     {'type': 'linear',  # Linear decay of alpha
      'initial_value': 0.2, 'initial_timestep': 0,
      'final_value': 0.05, 'final_timestep': 1500, },
 ]
 epsilons = [
-    0.1,  # Constant epsilon
+    # 0.1,  # Constant epsilon
     {'type': 'linear',  # Linear decay of epsilon
      'initial_value': 0.2, 'initial_timestep': 0,
      'final_value': 0.05, 'final_timestep': 1500, },
 ]
-max_iters_ql = [10000]
+max_iters_ql = [5000]
 
 # Combine all settings into a param_grid.  run_experiments() uses sklearn.model_selection.ParameterGrid to convert
 # solver_param_grid to individual cases
