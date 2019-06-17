@@ -163,7 +163,6 @@ class RewardingFrozenLakeEnv(discrete.DiscreteEnv):
     The episode ends when you reach the goal or fall in a hole.
     There are configurable rewards for reaching the goal, falling in a hole, and simply taking a step.
     The hole and step rewards are configurable when creating an instance of the problem.
-
     """
 
     metadata = {'render.modes': ['human', 'ansi']}
