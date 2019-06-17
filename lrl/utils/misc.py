@@ -1,5 +1,6 @@
 from timeit import default_timer as timer
 import numpy as np
+from collections.abc import Mapping
 
 
 # Helpers
@@ -117,3 +118,65 @@ def rc_to_xy(row, col, rows):
     x = col
     y = rows - row - 1
     return x, y
+
+
+def params_to_name(params, n_chars=4, sep='_', first_fields=None, key_remap=None):
+    """
+    Convert a mappable of parameters into a string for easy test naming
+
+    Args:
+        params:
+        n_chars:
+        sep:
+        first_fields:
+        key_remap:
+
+    Returns:
+        string
+    """
+    if first_fields is not None:
+        keys = [key for key in first_fields if key in params.keys()]
+    else:
+        keys = []
+
+    keys = keys + [key for key in sorted(params.keys()) if key not in keys]
+
+    if key_remap is None:
+        key_remap = {}
+
+    s = ""
+    for key in keys:
+        try:
+            key_printed_name = key_remap[key]
+        except KeyError:
+            key_printed_name = key
+
+        if len(s) > 0:
+            s += sep + sep
+
+        # Add key name
+        s += f"{str(key_printed_name)[:n_chars]}{sep}"
+
+        # Handle special case of alpha/epsilon defined by dict
+        parsed = False
+        if key == 'alpha' or key == 'epsilon' and isinstance(params[key], Mapping):
+            try:
+                # Add additional remappings to keys to make alpha/epsilon print shorter
+                s += f"{str(params[key]['initial_value'])}at{str(params[key]['initial_timestep'])}to" \
+                    f"{str(params[key]['final_value'])}at{str(params[key]['final_timestep'])}"
+
+                params_to_name(params[key], n_chars=n_chars, sep=sep, first_fields=first_fields)
+                parsed = True
+            except TypeError:
+                # If this fails, just use the normal method...
+                pass
+
+        if not parsed:
+            # Add param[key] contents
+            if isinstance(params[key], Mapping):
+                temp = params_to_name(params[key], n_chars=n_chars, sep=sep, first_fields=first_fields,
+                                      key_remap=key_remap)
+                s += f"{{{str(temp)}}}"
+            else:
+                s += f"{str(params[key])}"
+    return s
