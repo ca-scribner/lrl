@@ -6,7 +6,7 @@ def get_terminal_locations(env):
     transitions pointing to this location are terminal)
 
     Args:
-        env:
+        env: Instanced environment object such as Racetrack
 
     Returns:
 

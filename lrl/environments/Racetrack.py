@@ -12,253 +12,311 @@ RACETRACK_DEFAULT_REWARDS = {
 
 # Character map for the map characters (say that 10 times fast!)
 CHAR_MAP = {
-    "W": {'start_prob': 0., 'reward': RACETRACK_DEFAULT_REWARDS['crash'], 'terminal': True, 'color': 'forestgreen'},
+    "G": {'start_prob': 0., 'reward': RACETRACK_DEFAULT_REWARDS['crash'], 'terminal': True, 'color': 'forestgreen'},
     "S": {'start_prob': 1., 'reward': RACETRACK_DEFAULT_REWARDS['time'], 'terminal': False, 'color': 'lightgreen'},
     " ": {'start_prob': 0., 'reward': RACETRACK_DEFAULT_REWARDS['time'], 'terminal': False, 'color': 'darkgray'},
-    "G": {'start_prob': 0., 'reward': RACETRACK_DEFAULT_REWARDS['goal'], 'terminal': True, 'color': 'gold'},
+    "F": {'start_prob': 0., 'reward': RACETRACK_DEFAULT_REWARDS['goal'], 'terminal': True, 'color': 'gold'},
     "O": {'start_prob': 0., 'reward': RACETRACK_DEFAULT_REWARDS['time'], 'terminal': False, 'color': 'gray', 'chance_to_slip': 0.25}
 }
 
 TRACKS = {
-    # Naming as units_in_x x units_in_y
+    # Naming of tracks is "number_of_units_in_x by number_of_units_in_y"
+    # These are default tracks, but you can make your own!
     '3x4_basic': [
-        "WWW",
-        "WGW",
-        "WSW",
-        "WWW",
+        "GGG",
+        "GFG",
+        "GSG",
+        "GGG",
     ],
     '5x4_basic': [
-        "WWWWW",
-        "W   W",
-        "WSWGW",
-        "WWWWW",
+        "GGGGG",
+        "G   G",
+        "GSGFG",
+        "GGGGG",
     ],
     '10x10': [
-        "WWWWWWWWWW",
-        "WWWWWWWWWW",
-        "WWW     GG",
-        "WWW     GG",
-        "WW   WWWWW",
-        "WW   WWWWW",
-        "WW    WWWW",
-        "WW   SWWWW",
-        "WWWWWWWWWW",
-        "WWWWWWWWWW",
+        "GGGGGGGGGG",
+        "GGGGGGGGGG",
+        "GGG     FF",
+        "GGG     FF",
+        "GG   GGGGG",
+        "GG   GGGGG",
+        "GG    GGGG",
+        "GG   SGGGG",
+        "GGGGGGGGGG",
+        "GGGGGGGGGG",
     ],
     '10x10_basic': [
-        "WWWWWWWWWW",
-        "WWWWWWWWWW",
-        "WW     GWW",
-        "WW      WW",
-        "WW      WW",
-        "WW      WW",
-        "WW      WW",
-        "WWS     WW",
-        "WWWWWWWWWW",
-        "WWWWWWWWWW",
+        "GGGGGGGGGG",
+        "GGGGGGGGGG",
+        "GG     FGG",
+        "GG      GG",
+        "GG      GG",
+        "GG      GG",
+        "GG      GG",
+        "GGS     GG",
+        "GGGGGGGGGG",
+        "GGGGGGGGGG",
     ],
     '10x10_all_oil': [
-        "WWWWWWWWWW",
-        "WWWWWWWWWW",
-        "WWOOOOOGWW",
-        "WWOOOOOOWW",
-        "WWOOOOOOWW",
-        "WWOOOOOOWW",
-        "WWOOOOOOWW",
-        "WWSOOOOOWW",
-        "WWWWWWWWWW",
-        "WWWWWWWWWW",
+        "GGGGGGGGGG",
+        "GGGGGGGGGG",
+        "GGOOOOOFGG",
+        "GGOOOOOOGG",
+        "GGOOOOOOGG",
+        "GGOOOOOOGG",
+        "GGOOOOOOGG",
+        "GGSOOOOOGG",
+        "GGGGGGGGGG",
+        "GGGGGGGGGG",
     ],
     '15x15_basic': [
-        "WWWWWWWWWWWWWW",
-        "WWWWWWWWWWWWWW",
-        "WW         GWW",
-        "WW          WW",
-        "WW          WW",
-        "WW          WW",
-        "WW          WW",
-        "WW          WW",
-        "WW          WW",
-        "WW          WW",
-        "WW          WW",
-        "WW          WW",
-        "WWS         WW",
-        "WWWWWWWWWWWWWW",
-        "WWWWWWWWWWWWWW",
+        "GGGGGGGGGGGGGG",
+        "GGGGGGGGGGGGGG",
+        "GG         FGG",
+        "GG          GG",
+        "GG          GG",
+        "GG          GG",
+        "GG          GG",
+        "GG          GG",
+        "GG          GG",
+        "GG          GG",
+        "GG          GG",
+        "GG          GG",
+        "GGS         GG",
+        "GGGGGGGGGGGGGG",
+        "GGGGGGGGGGGGGG",
     ],
     '20x20_basic': [
-        "WWWWWWWWWWWWWWWWWWWW",
-        "WWWWWWWWWWWWWWWWWWWW",
-        "WW               GWW",
-        "WW                WW",
-        "WW                WW",
-        "WW                WW",
-        "WW                WW",
-        "WW                WW",
-        "WW                WW",
-        "WW                WW",
-        "WW                WW",
-        "WW                WW",
-        "WW                WW",
-        "WW                WW",
-        "WW                WW",
-        "WW                WW",
-        "WW                WW",
-        "WWS               WW",
-        "WWWWWWWWWWWWWWWWWWWW",
-        "WWWWWWWWWWWWWWWWWWWW",
+        "GGGGGGGGGGGGGGGGGGGG",
+        "GGGGGGGGGGGGGGGGGGGG",
+        "GG               FGG",
+        "GG                GG",
+        "GG                GG",
+        "GG                GG",
+        "GG                GG",
+        "GG                GG",
+        "GG                GG",
+        "GG                GG",
+        "GG                GG",
+        "GG                GG",
+        "GG                GG",
+        "GG                GG",
+        "GG                GG",
+        "GG                GG",
+        "GG                GG",
+        "GGS               GG",
+        "GGGGGGGGGGGGGGGGGGGG",
+        "GGGGGGGGGGGGGGGGGGGG",
     ],
     '20x20_all_oil': [
-        "WWWWWWWWWWWWWWWWWWWW",
-        "WWWWWWWWWWWWWWWWWWWW",
-        "WWOOOOOOOOOOOOOOOGWW",
-        "WWOOOOOOOOOOOOOOOOWW",
-        "WWOOOOOOOOOOOOOOOOWW",
-        "WWOOOOOOOOOOOOOOOOWW",
-        "WWOOOOOOOOOOOOOOOOWW",
-        "WWOOOOOOOOOOOOOOOOWW",
-        "WWOOOOOOOOOOOOOOOOWW",
-        "WWOOOOOOOOOOOOOOOOWW",
-        "WWOOOOOOOOOOOOOOOOWW",
-        "WWOOOOOOOOOOOOOOOOWW",
-        "WWOOOOOOOOOOOOOOOOWW",
-        "WWOOOOOOOOOOOOOOOOWW",
-        "WWOOOOOOOOOOOOOOOOWW",
-        "WWOOOOOOOOOOOOOOOOWW",
-        "WWOOOOOOOOOOOOOOOOWW",
-        "WWSOOOOOOOOOOOOOOOWW",
-        "WWWWWWWWWWWWWWWWWWWW",
-        "WWWWWWWWWWWWWWWWWWWW",
+        "GGGGGGGGGGGGGGGGGGGG",
+        "GGGGGGGGGGGGGGGGGGGG",
+        "GGOOOOOOOOOOOOOOOFGG",
+        "GGOOOOOOOOOOOOOOOOGG",
+        "GGOOOOOOOOOOOOOOOOGG",
+        "GGOOOOOOOOOOOOOOOOGG",
+        "GGOOOOOOOOOOOOOOOOGG",
+        "GGOOOOOOOOOOOOOOOOGG",
+        "GGOOOOOOOOOOOOOOOOGG",
+        "GGOOOOOOOOOOOOOOOOGG",
+        "GGOOOOOOOOOOOOOOOOGG",
+        "GGOOOOOOOOOOOOOOOOGG",
+        "GGOOOOOOOOOOOOOOOOGG",
+        "GGOOOOOOOOOOOOOOOOGG",
+        "GGOOOOOOOOOOOOOOOOGG",
+        "GGOOOOOOOOOOOOOOOOGG",
+        "GGOOOOOOOOOOOOOOOOGG",
+        "GGSOOOOOOOOOOOOOOOGG",
+        "GGGGGGGGGGGGGGGGGGGG",
+        "GGGGGGGGGGGGGGGGGGGG",
     ],
     '30x30_basic': [
-        "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWW",
-        "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWW",
-        "WW                         GWW",
-        "WW                          WW",
-        "WW                          WW",
-        "WW                          WW",
-        "WW                          WW",
-        "WW                          WW",
-        "WW                          WW",
-        "WW                          WW",
-        "WW                          WW",
-        "WW                          WW",
-        "WW                          WW",
-        "WW                          WW",
-        "WW                          WW",
-        "WW                          WW",
-        "WW                          WW",
-        "WW                          WW",
-        "WW                          WW",
-        "WW                          WW",
-        "WW                          WW",
-        "WW                          WW",
-        "WW                          WW",
-        "WW                          WW",
-        "WW                          WW",
-        "WW                          WW",
-        "WW                          WW",
-        "WWS                         WW",
-        "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWW",
-        "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWW",
+        "GGGGGGGGGGGGGGGGGGGGGGGGGGGGGG",
+        "GGGGGGGGGGGGGGGGGGGGGGGGGGGGGG",
+        "GG                         FGG",
+        "GG                          GG",
+        "GG                          GG",
+        "GG                          GG",
+        "GG                          GG",
+        "GG                          GG",
+        "GG                          GG",
+        "GG                          GG",
+        "GG                          GG",
+        "GG                          GG",
+        "GG                          GG",
+        "GG                          GG",
+        "GG                          GG",
+        "GG                          GG",
+        "GG                          GG",
+        "GG                          GG",
+        "GG                          GG",
+        "GG                          GG",
+        "GG                          GG",
+        "GG                          GG",
+        "GG                          GG",
+        "GG                          GG",
+        "GG                          GG",
+        "GG                          GG",
+        "GG                          GG",
+        "GGS                         GG",
+        "GGGGGGGGGGGGGGGGGGGGGGGGGGGGGG",
+        "GGGGGGGGGGGGGGGGGGGGGGGGGGGGGG",
     ],
     '20x10_U_all_oil': [
-        "WWWWWWWWWWWWWWWWWWWW",
-        "WWWWWWWWWWWWWWWWWWWW",
-        "WWWOOOOOOOOOOOOOOOWW",
-        "WWWOOOOOWWWWOOOOOOWW",
-        "WWOOOOWWWWWWWWOOOOWW",
-        "WWOOOWWWWWWWWWWOOOWW",
-        "WWOOOOWWWWWWWWOOOOWW",
-        "WWOOOOOOSWWWWWOOOOWW",
-        "WWWWWWWWWWWWWWGGGGWW",
-        "WWWWWWWWWWWWWWGGGGWW",
+        "GGGGGGGGGGGGGGGGGGGG",
+        "GGGGGGGGGGGGGGGGGGGG",
+        "GGGOOOOOOOOOOOOOOOGG",
+        "GGGOOOOOGGGGOOOOOOGG",
+        "GGOOOOGGGGGGGGOOOOGG",
+        "GGOOOGGGGGGGGGGOOOGG",
+        "GGOOOOGGGGGGGGOOOOGG",
+        "GGOOOOOOSGGGGGOOOOGG",
+        "GGGGGGGGGGGGGGFFFFGG",
+        "GGGGGGGGGGGGGGFFFFGG",
     ],
     '20x10_U': [
-        "WWWWWWWWWWWWWWWWWWWW",
-        "WWWWWWWWWWWWWWWWWWWW",
-        "WWW     OOOO      WW",
-        "WWW     WWWW      WW",
-        "WWOOOOWWWWWWWWOOOOWW",
-        "WWOOOWWWWWWWWWWOOOWW",
-        "WW    WWWWWWWW    WW",
-        "WW      SWWWWW    WW",
-        "WWWWWWWWWWWWWWGGGGWW",
-        "WWWWWWWWWWWWWWGGGGWW",
+        "GGGGGGGGGGGGGGGGGGGG",
+        "GGGGGGGGGGGGGGGGGGGG",
+        "GGG     OOOO      GG",
+        "GGG     GGGG      GG",
+        "GGOOOOGGGGGGGGOOOOGG",
+        "GGOOOGGGGGGGGGGOOOGG",
+        "GG    GGGGGGGG    GG",
+        "GG      SGGGGG    GG",
+        "GGGGGGGGGGGGGGFFFFGG",
+        "GGGGGGGGGGGGGGFFFFGG",
     ],
     '10x10_oil': [
-        "WWWWWWWWWW",
-        "WWWWWWWWWW",
-        "WWW   OOGG",
-        "WWW     GG",
-        "WW   WWWWW",
-        "WW   WWWWW",
-        "WW    WWWW",
-        "WW   SWWWW",
-        "WWWWWWWWWW",
-        "WWWWWWWWWW",
+        "GGGGGGGGGG",
+        "GGGGGGGGGG",
+        "GGG   OOFF",
+        "GGG     FF",
+        "GG   GGGGG",
+        "GG   GGGGG",
+        "GG    GGGG",
+        "GG   SGGGG",
+        "GGGGGGGGGG",
+        "GGGGGGGGGG",
     ],
     '20x15_risky': [
-        "WWWWWWWWWWWWWWWWWWWW",
-        "WWWWWWWWWWWWWWWWWWWW",
-        "WW                WW",
-        "WW WWWWWWWWWWWWWW WW",
-        "WW WWWWWWWWWWWWWW WW",
-        "WW WWWWWWWWWWWWWW WW",
-        "WW WWWWWWWWWWWWWW WW",
-        "WW WWWWWWWWWWWWWW WW",
-        "WW WWWWWWWWWWWWWW WW",
-        "WW WWWWWWWWWWWWWW WW",
-        "WW WWWWWOOOOWWWWW WW",
-        "WWW WWWOWWWWOWWW WWW",
-        "WWWW  SWWWWWWG  WWWW",
-        "WWWWWWWWWWWWWWWWWWWW",
-        "WWWWWWWWWWWWWWWWWWWW",
+        "GGGGGGGGGGGGGGGGGGGG",
+        "GGGGGGGGGGGGGGGGGGGG",
+        "GG                GG",
+        "GG GGGGGGGGGGGGGG GG",
+        "GG GGGGGGGGGGGGGG GG",
+        "GG GGGGGGGGGGGGGG GG",
+        "GG GGGGGGGGGGGGGG GG",
+        "GG GGGGGGGGGGGGGG GG",
+        "GG GGGGGGGGGGGGGG GG",
+        "GG GGGGGGGGGGGGGG GG",
+        "GG GGGGGOOOOGGGGG GG",
+        "GGG GGGOGGGGOGGG GGG",
+        "GGGG  SGGGGGGF  GGGG",
+        "GGGGGGGGGGGGGGGGGGGG",
+        "GGGGGGGGGGGGGGGGGGGG",
     ]
 }
 
 
 class Racetrack(discrete.DiscreteEnv):
+    """
+    A car-race-like environment that uses location and velocity for state and acceleration for actions, in 2D
 
-    def __init__(self, track=None, char_map=CHAR_MAP, x_vel_limits=None, y_vel_limits=None,
-                 x_accel_limits=None, y_accel_limits=None, max_total_accel=2, seed=None, verbose=False):
-        # NOTE: If adding arguments, make sure to update .new_instance().  Is there a better way to do this?
-        # Defaults:
+    Loosely inspired by the Racetrack example of Sutton and Barto's Reinforcement Learning (Exercise 5.8,
+    http://www.incompleteideas.net/book/the-book.html)
+
+    The objective of this environment is to traverse a racetrack from a start location to any goal location.
+    Reaching a goal location returns a large reward and terminates the episode, whereas landing on a grass location
+    returns a large negative reward and terminates the episode.  All non-terminal transitions return a small negative
+    reward.  Oily road surfaces are non-terminal but also react to an agent's action stochastically, sometimes causing
+    an Agent to "slip" whereby their requested action is ignored (interpreted as if a=(0,0)).
+
+    The tiles in the environment are:
+    (blank): Clean open (deterministic) road
+    O: Oily (stochastic) road
+    G: (terminal) grass
+    S: Starting location (agent starts at a random starting location).  After starting, S tiles behave like open road
+    F: Finish location(s) (agent must reach any of these tiles to receive positive reward
+
+    The state space of the environment is described by xy location and xy velocity (with maximum velocity being a
+    user-specified parameter).  For example, s=(3, 5, 1, -1) means the Agent is currently in the x=3, y=5 location
+    with Vx=1, Vy=-1.
+
+    The action space of the environment is xy acceleration (with maximum acceleration being a user-specified parameter).
+    For example, a=(-2, 1) means ax=-2, ay=-1.  Transitions are determined by the current velocity as well as the
+    requested acceleration (with a cap set by Vmax of the environment), for example:
+        s=(3, 5, 1, -1), a=(-3, 1) --> s_prime=(1, 5, -2, 0)
+    But if vx_max == +-1 then:
+        s=(3, 5, 1, -1), a=(-3, 1) --> s_prime=(2, 5, -1, 0)
+
+    Note that sign conventions for location are:
+        x: 0 at leftmost column, positive to the right
+        y: 0 at bottommost row, positive up
+
+    Args:
+        track (list): List of strings describing the track (see racetrack_tracks.py for examples)
+        x_vel_limits (tuple): (OPTIONAL) Tuple of (min, max) valid acceleration in x.  Default is (-2, 2).
+        y_vel_limits (tuple): (OPTIONAL) Tuple of (min, max) valid acceleration in y.  Default is (-2, 2).
+        x_accel_limits (tuple): (OPTIONAL) Tuple of (min, max) valid acceleration in x.  Default is (-2, 2).
+        y_accel_limits (tuple): (OPTIONAL) Tuple of (min, max) valid acceleration in y.  Default is (-2, 2).
+        max_total_accel (int): (OPTIONAL) Integer maximum total acceleration in one action.  Total acceleration is computed
+                            by abs(x_a)+abs(y_a), representing the sum of change in acceleration in both directions
+                            Default is infinite (eg: any accel described by x and y limits)
+
+    Attributes:
+        track: List of strings describing track (copy of input)
+        desc (np.array): Numpy character array of the track (better for printing on screen/accessing track at xy
+                         locations)
+        index_to_state (list): List to convert from state index to full tuple describing state
+                               (eg: index_to_state[state_index] -> state_tuple)
+        state_to_index (dict): Dict to convert from state tuple to state index
+                               (eg: state_to_index[state_tuple] -> state_index)
+        is_location_terminal (dict): Indicates if a state is terminal (eg, no rewards/transitions leading out of state).
+                                     Keyed by state tuple
+        (other attributes provided by parent DiscreteEnv class, such as action_space)
+    """
+
+    def __init__(self, track=None, x_vel_limits=None, y_vel_limits=None,
+                 x_accel_limits=None, y_accel_limits=None, max_total_accel=2):
+
         if track is None:
             track = TRACKS['10x10']
         elif isinstance(track, str):
             track = TRACKS[track]
         self.track = track
         self.desc = np.asarray(self.track, dtype='c')
-        self.char_map = char_map
 
         if x_vel_limits is None:
             x_vel_limits = (-2, 2)
-        self.x_vel_limits = x_vel_limits
+        self._x_vel_limits = x_vel_limits
+
         if y_vel_limits is None:
             y_vel_limits = (-2, 2)
-        self.y_vel_limits = y_vel_limits
+        self._y_vel_limits = y_vel_limits
+
         if x_accel_limits is None:
             x_accel_limits = (-2, 2)
         self.x_accel_limits = x_accel_limits
+
         if y_accel_limits is None:
             y_accel_limits = (-2, 2)
-        self.y_accel_limits = y_accel_limits
+        self._y_accel_limits = y_accel_limits
 
-        self.max_total_accel = max_total_accel
+        self._max_total_accel = max_total_accel
 
-        self.verbose = verbose
+        self._char_map = CHAR_MAP
+        self._color_map = {k.encode(): self._char_map[k]['color'] for k in self._char_map}
 
-        self.color_map = {k.encode(): char_map[k]['color'] for k in char_map}
-
+        # Generate an OpenAI Gym DiscreteEnv style P matrix
         n_states, n_actions, p, starting_probability, action_map, terminal_locations = \
-            track_to_p_matrix(track=self.track, char_map=self.char_map,
-                              x_vel_limits=self.x_vel_limits, y_vel_limits=self.y_vel_limits,
-                              x_accel_limits=self.x_accel_limits, y_accel_limits=self.y_accel_limits,
-                              max_total_accel=self.max_total_accel, verbose=False)
+            track_to_p_matrix(track=self.track, char_map=self._char_map,
+                              x_vel_limits=self._x_vel_limits, y_vel_limits=self._y_vel_limits,
+                              x_accel_limits=self.x_accel_limits, y_accel_limits=self._y_accel_limits,
+                              max_total_accel=self._max_total_accel)
 
+        # Instantiate the DiscreteEnv parent
         super().__init__(n_states, n_actions, p, starting_probability)
-
 
         # Maps to convert indexed states/actions to actual (tuple) states and actions
         self.index_to_state = [x[0] for x in list(self.P.items())]
@@ -268,7 +326,7 @@ class Racetrack(discrete.DiscreteEnv):
         # xy location to isTerminal map (helps with plotting later)
         self.is_location_terminal = terminal_locations
 
-        # Parent __init__ gets self.s as an index.  Convert to the state tuple
+        # super().__init__ sets self.s as an index, whereas Racetrack uses a state tuple.  Convert s to it's state tuple
         self.s = list(self.P.items())[self.s][0]
 
     def reset(self):
@@ -286,49 +344,57 @@ class Racetrack(discrete.DiscreteEnv):
         """
         Render the environment.
 
-        :param mode:
-        :param current_location: Character to denote the current location
-        :return: None
-        """
+        Warnings:
+            This method does not follow the prototype of it's parent.  It is presently a very simple version for
+            printing the environment's current state to the screen
 
+        Args:
+            mode: (NOT USED)
+            current_location: Character to denote the current location
+
+        Returns:
+            None
+        """
         print(f"Vx={self.s[2]}, Vy={self.s[3]}")
         print_track(self.track, xy=[self.s[0:2]], print_as=current_location)
 
     def step(self, a):
         """
-        Wrap parent step, interpreting integer actions as mapped to human-readable actions
+        Take a step in the environment.
 
-        :param a: Action to take, either as an integer (0..nA-1) or true action (tuple of (x_accel,y_accel))
-        :return: Same as parent step
+        This wraps the parent object's step(), interpreting integer actions as mapped to human-readable actions
+
+        Args:
+            a (tuple, int): Action to take, either as an integer (0..nA-1) or true action (tuple of (x_accel,y_accel))
+
+        Returns:
+            Next state, either as a tuple or int depending on type of state used
         """
-
         try:
             return super().step(a)
         except KeyError:
             a = self.index_to_action[a]
             return super().step(a)
 
-    def new_instance(self):
-        return Racetrack(track=self.track, char_map=self.char_map,
-                         x_vel_limits=self.x_vel_limits, y_vel_limits=self.y_vel_limits,
-                         x_accel_limits=self.x_accel_limits, y_accel_limits=self.y_accel_limits,
-                         max_total_accel=self.max_total_accel, seed=None, verbose=self.verbose)
 
-    def directions(self):
-        return self.index_to_action
-
-
+# Helpers
 def print_track(track, rc=None, xy=None, print_as='*'):
     """
     Print a track, optionally with locations highlighted.
 
     Locations can be specified by a list of row-col or x-y coordinates, but not a mixture
 
-    :param track: List of characters describing the track
-    :param rc:
-    :param xy:
-    :param print_as:
-    :return:
+    Args:
+        track (list): List of strings describing the track
+        rc (list): Highlighted locations (printed as print_as)
+        xy (list): Highlighted locations (printed as print_as)
+        print_as (str): Character to use to print any highlighted locations
+
+    Side Effects:
+        Track is printed to screen
+
+    Returns:
+        None
     """
     if rc is None:
         if xy is None:
@@ -338,7 +404,7 @@ def print_track(track, rc=None, xy=None, print_as='*'):
 
     # If print_as is a single string, print all locations as that same code
     if isinstance(print_as, str):
-        print_as = [print_as for i in range(len(rc))]
+        print_as = [print_as for _ in range(len(rc))]
 
     this_location = track.copy()
     for i, this_rc in enumerate(rc):
@@ -395,17 +461,18 @@ def rc_to_xy(track, r, c):
 
 
 def track_to_p_matrix(track, char_map=CHAR_MAP, x_vel_limits=None, y_vel_limits=None,
-                      x_accel_limits=None, y_accel_limits=None, max_total_accel=np.inf, verbose=True):
+                      x_accel_limits=None, y_accel_limits=None, max_total_accel=np.inf):
     """
     Converts a map described by a list of strings to P-matrix format for an OpenAI Gym Discrete environment.
 
     Maps are specified using the following characters:
-        W: (Wall) Terminal location with reward
+        G: (Grass) Terminal location with reward
         S: Starting location (can be one or more) with small negative reward.  Note that starting state will always have
            0 velocity
            FUTURE: Add velocity to start
         " " (single space): Open track with small negative reward
-        G: Goal location with reward
+        F: Finish location with reward
+        O: Oil (slippery tile where an action randomly may not work as expected)
     Rewards and terminal status are assessed based on someone ENTERING that state (eg: if you travel from a starting
     location to a wall, you get the wall's reward and terminal status)
 
@@ -413,17 +480,25 @@ def track_to_p_matrix(track, char_map=CHAR_MAP, x_vel_limits=None, y_vel_limits=
         x: 0 at leftmost column, positive to the right
         y: 0 at bottommost row, positive up
 
-    :param track: List of strings describing the track
-    :param char_map: Character map that maps track characters to P matrix
-    :param x_vel_limits: (OPTIONAL) Tuple of (min, max) valid acceleration in x.  Default is (-2, 2).
-    :param y_vel_limits: (OPTIONAL) Tuple of (min, max) valid acceleration in y.  Default is (-2, 2).
-    :param x_accel_limits: (OPTIONAL) Tuple of (min, max) valid acceleration in x.  Default is (-2, 2).
-    :param y_accel_limits: (OPTIONAL) Tuple of (min, max) valid acceleration in y.  Default is (-2, 2).
-    :param max_total_accel: (OPTIONAL) Integer maximum total acceleration in one action.  Total acceleration is computed
-                            by abs(x_a)+abs(y_a), representing the sum of change in acceleration in both directions
-                            Default is infinite (eg: any accel described by x and y limits)
-    :param verbose: If True, print debug statements
-    :return: TBD
+    Args:
+        track: List of strings describing the track
+        char_map: Character map that maps track characters to P matrix
+        x_vel_limits: (OPTIONAL) Tuple of (min, max) valid acceleration in x.  Default is (-2, 2).
+        y_vel_limits: (OPTIONAL) Tuple of (min, max) valid acceleration in y.  Default is (-2, 2).
+        x_accel_limits: (OPTIONAL) Tuple of (min, max) valid acceleration in x.  Default is (-2, 2).
+        y_accel_limits: (OPTIONAL) Tuple of (min, max) valid acceleration in y.  Default is (-2, 2).
+        max_total_accel: (OPTIONAL) Integer maximum total acceleration in one action.  Total acceleration is computed
+                         by abs(x_a)+abs(y_a), representing the sum of change in acceleration in both directions
+                         Default is infinite (eg: any accel described by x and y limits)
+
+    Returns:
+        Tuple of:
+            n_states (int): Number of states
+            n_actions (int): Number of actions
+            p: P matrix in DiscreteEnv format
+            starting_probability (list): Probability for all starting locations
+            action_map (dict): Map between tuple and integer actions
+            terminal_locations (dict): Map of locations which are terminal
     """
     # Defaults:
     if x_vel_limits is None:
@@ -456,8 +531,6 @@ def track_to_p_matrix(track, char_map=CHAR_MAP, x_vel_limits=None, y_vel_limits=
             x, y = rc_to_xy(track, i_row, i_col)
             # Record whether this location is terminal
             terminal_locations[(x, y)] = char_map[track[i_row][i_col]]['terminal']
-            if verbose:
-                print_track(track, rc=[(i_row, i_col)])
             for x_vel in x_vels:
                 for y_vel in y_vels:
                     actions = {}
@@ -465,8 +538,6 @@ def track_to_p_matrix(track, char_map=CHAR_MAP, x_vel_limits=None, y_vel_limits=
                         starting_probability.append(char_map[track[i_row][i_col]]['start_prob'])
                     else:
                         starting_probability.append(0.0)
-                    if verbose:
-                        print(f's = {(x, y, x_vel, y_vel)} ({track[i_row][i_col]} w/start prob = {starting_probability[-1]})')
                     for x_accel, y_accel in actions_as_list:
                         # If this state is terminal, Make all actions point back to itself for 0 reward and also
                         # be terminal (this is how the value iteration wants it)
@@ -475,9 +546,6 @@ def track_to_p_matrix(track, char_map=CHAR_MAP, x_vel_limits=None, y_vel_limits=
                             reward = 0
                             terminal = True
                             actions[(x_accel, y_accel)] = [(1.0, next_state, reward, terminal)]
-                            if verbose:
-                                print("\tTerminal state - adding dummy action")
-                                print(f'\ta= {(x_accel, y_accel)} -> v={(x_vel, y_vel)}, s` = {next_state}(xy) r={reward}, done={terminal}')
                         else:
                             next_x_vel = accel_within_limits(x_vel, x_accel, x_vel_limits)
                             next_y_vel = accel_within_limits(y_vel, y_accel, y_vel_limits)
@@ -526,8 +594,6 @@ def track_to_p_matrix(track, char_map=CHAR_MAP, x_vel_limits=None, y_vel_limits=
                                     # (prob, next_state, reward, boolean_for_terminal_state)
                                     (1.0, next_state, reward, terminal),
                                 ]
-                            if verbose:
-                                print(f'\ta= {(x_accel, y_accel)} -> v={(next_x_vel, next_y_vel)}, s` = {next_state}(xy) ({next_r, next_c} (rc)), r={reward}, done={terminal}')
                     p[(x, y, x_vel, y_vel)] = actions
 
     n_states = len(p)
@@ -536,6 +602,17 @@ def track_to_p_matrix(track, char_map=CHAR_MAP, x_vel_limits=None, y_vel_limits=
 
 
 def accel_within_limits(v, a, v_range):
+    """
+    Accelerate the car while clipping to a velocity range
+
+    Args:
+        v: starting velocity
+        a: acceleration
+        v_range (tuple): min and max velocity
+
+    Returns:
+        integer velocity clipped to min/max v_range
+    """
     v = v + a
     v = max(v, v_range[0])
     v = min(v, v_range[1])
