@@ -3,12 +3,9 @@ import numpy as np
 from collections.abc import Mapping
 
 
-# Helpers
-# FUTURE: Move these to more logical places where people could find and use them
-
-
 def print_dict_by_row(d, fmt='{key:20s}: {val:d}'):
-    """Print a dictionary with a little extra structure, printing a different key/value to each line.
+    """
+    Print a dictionary with a little extra structure, printing a different key/value to each line.
 
     Args:
         d (dict): Dictionary to be printed
@@ -16,7 +13,6 @@ def print_dict_by_row(d, fmt='{key:20s}: {val:d}'):
 
     Returns:
         None
-
     """
     for k in d:
         print(fmt.format(key=str(k), val=d[k]))
@@ -26,7 +22,7 @@ def count_dict_differences(d1, d2, keys=None, raise_on_missing_key=True, print_d
     """
     Return the number of differences between two dictionaries.  Useful to compare two policies stored as dictionaries.
 
-    Does not properly handle floats that are approximately equal.
+    Does not properly handle floats that are approximately equal.  Mainly use for int and objects with __eq__
 
     Optionally raise an error on missing keys (otherwise missing keys are counted as differences)
 
@@ -63,7 +59,7 @@ def count_dict_differences(d1, d2, keys=None, raise_on_missing_key=True, print_d
 
 def dict_differences(d1, d2):
     """
-    Return the maximum and mean of the absolute difference between all elements of two dictionaries
+    Return the maximum and mean of the absolute difference between all elements of two dictionaries of numbers
 
     Args:
         d1 (dict): Dictionary to compare
@@ -85,7 +81,8 @@ def dict_differences(d1, d2):
 
 
 class Timer:
-    """A Simple Timer class
+    """
+    A Simple Timer class for timing code
     """
     def __init__(self):
         self.start = timer()
@@ -124,12 +121,17 @@ def params_to_name(params, n_chars=4, sep='_', first_fields=None, key_remap=None
     """
     Convert a mappable of parameters into a string for easy test naming
 
+    Warnings:
+        Currently includes hard-coded formatting for alpha and epsilon keys
+
     Args:
-        params:
-        n_chars:
-        sep:
-        first_fields:
-        key_remap:
+        params (dict): Dictionary to convert to a string
+        n_chars (int): Number of characters per key to add to string.
+                       Eg: if key='abcdefg' and n_chars=4, output will be 'abcd'
+        sep (str): Separator character between fields (uses one of these between key and value, and two between
+                   different key-value pairs
+        first_fields (list): Optional list of keys to write ahead of other keys (otherwise, output order it sorted)
+        key_remap (list): List of dictionaries of {key_name: new_key_name} for rewriting keys into more readable strings
 
     Returns:
         string

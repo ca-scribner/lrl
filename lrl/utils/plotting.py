@@ -12,10 +12,11 @@ DEFAULT_PLOT_FORMAT = 'png'
 DEFAULT_PLOT_DPI = 150
 MAX_PATHS_ON_EPISODE_PLOT = 100
 
+
 # Plotting for BaseSolver objects and data
 def plot_solver_convergence(solver, **kwargs):
     """
-    Convenience binding to plot convergence statistics for a set of solver objects.
+    Convenience binding to plot convergence statistics for a solver object.
 
     Also useful as a recipe for custom plotting.
 
@@ -70,18 +71,18 @@ def plot_solver_convergence_from_df(df, y='delta_max', y_label=None, x='iteratio
 
 def plot_env(env, ax=None, edgecolor='k', resize_figure=True, savefig=None):
     """
-    FUTURE: Add docstring
+    Plot the map of an environment
 
     Args:
-        env:
-        ax:
-        edgecolor:
-        resize_figure: If true, resize the figure to:
-         width  = 0.5 * n_cols inches
-         height = 0.5 * n_rows inches
-        savefig:
+        env: Environment to plot
+        ax (axes): (Optional) Axes object to plot on
+        edgecolor (str): Color of the edge of each grid square (matplotlib format)
+        resize_figure (bool): If true, resize the figure to:
+                              width  = 0.5 * n_cols inches
+                              height = 0.5 * n_rows inches
+        savefig (str): If not None, save the figure to this filename
     Returns:
-
+         Axes: Matplotlib axes object
     """
     fig, ax = get_ax(ax)
 
@@ -126,7 +127,8 @@ def plot_solver_results(env, solver=None, policy=None, value=None, savefig=None,
     Input can be using a BaseSolver or child object, or by specifying policy and/or value directly via dict or
     DictWithHistory.
 
-    See plot_solver_result() for more info on generation of individual plots and additional arguments for color/precision.
+    See plot_solver_result() for more info on generation of individual plots and additional arguments for
+    color/precision.
 
     Args:
         env: Augmented OpenAI Gym-like environment object
@@ -136,7 +138,7 @@ def plot_solver_results(env, solver=None, policy=None, value=None, savefig=None,
                                           state
         savefig (str): If not None, save figures to this name.  For cases with multiple policies per grid square, this
                        will be the suffix on the name (eg: for policy at Vx=1, Vy=2, we get name of savefig_1_2.png)
-        **kwargs (dict): Other arguments passed to plot_policy
+        **kwargs (dict): Other arguments passed to plot_solver_result
 
     Returns:
         list of Matplotlib Axes for the plots
@@ -203,7 +205,7 @@ def plot_solver_results(env, solver=None, policy=None, value=None, savefig=None,
         # Actual numpy array of policy/value are the second element of the list_of_tuples.  Title is the first (where
         # both titles should be the same)
         returned_axes[i] = plot_solver_result(env, policy_list_of_tuples[i][1], value_list_of_tuples[i][1],
-                                              title=axes_titles[i], savefig=this_savefig)
+                                              title=axes_titles[i], savefig=this_savefig, **kwargs)
 
 
 def plot_policy(env, policy, **kwargs):
@@ -221,7 +223,7 @@ def plot_solver_result(env, policy=None, value=None, ax=None, add_env_to_plot=Tr
                        size_policy='auto',
                        size_value='auto', value_precision=2):
     """
-    FUTURE: Add docstring.  Plot result for a single xy map using a numpy array of shaped policy and/or value
+    Plot result for a single xy map using a numpy array of shaped policy and/or value
 
 
     Args:
@@ -231,15 +233,19 @@ def plot_solver_result(env, policy=None, value=None, ax=None, add_env_to_plot=Tr
                            Racetrack), call plot_policy for each given additional state (eg: for v=(0, 0), v=(1, 0), ..)
         value:
         ax:
-        add_env_to_plot:
+        add_env_to_plot (bool): If True, add the environment map to the axes before plotting policy using plot_env()
         hide_terminal_locations (bool): If True, all known terminal locations will have no text printed (as policy here
                                         doesn't matter)
-        color:
-        title:
-        savefig:
-        size_policy:
-        size_value:
-        value_precision:
+        color (str): Matplotlib color string denoting color of the text for policy/value
+        title (str): (Optional) title added to the axes object
+        savefig (str): (Optional) string filename to output the figure to
+        size_policy (str, numeric): (Optional) Specification of text font size for policy printing.  One of:
+                                        'auto': Will automatically choose a font size based on the number of characters
+                                                to be printed
+                                        str or numeric: Interpreted as a Matplotlib style font size designation
+        size_value (str, numeric): (Optional) Specification of text font size for value printing.  Same interface as
+                                   size_policy
+        value_precision (int): Precision of value function to be included on figures
 
     Returns:
         Matplotlib Axes object
@@ -314,8 +320,6 @@ def plot_solver_result(env, policy=None, value=None, ax=None, add_env_to_plot=Tr
         ax.get_figure().savefig(f'{savefig}.{DEFAULT_PLOT_FORMAT}', format=DEFAULT_PLOT_FORMAT, dpi=DEFAULT_PLOT_DPI)
     return ax
 
-# FUTURE: Add a "format plot" function to handle all plot default formatting (xy lims, removing labels, subtitle, ...)
-
 
 def plot_episodes(episodes, env=None, add_env_to_plot=True, max_episodes=MAX_PATHS_ON_EPISODE_PLOT,
                   alpha=None, color ='k', title=None, ax=None, savefig=None):
@@ -325,17 +329,19 @@ def plot_episodes(episodes, env=None, add_env_to_plot=True, max_episodes=MAX_PAT
     Args:
         episodes (list, WalkStatistics): Series of walks to be plotted.  If WalkStatistics instance, .walks will be
                                       extracted
-        env:
-        add_env_to_plot:
-        alpha:
-        color:
-        title:
-        ax:
-        max_episodes:
-        savefig:
+        env: Environment traversed
+        add_env_to_plot (bool): If True, use plot_env to plot the environment to the image
+        alpha (float): (Optional) alpha (transparency) used for plotting the walk.
+                       If left as None, a value will be chosen based on the number of walks to be plotted
+        color (str): Matplotlib-style color designation
+        title (str): (Optional) Title to be added to the axes
+        ax (axes): (Optional) Matplotlib axes object to write the plot to
+        savefig (str): (Optional) string filename to output the figure to
+        max_episodes (int): Maximum number of episodes to add to the plot.  If len(episodes) exceeds this value,
+                            randomly chosen episodes will be used
 
     Returns:
-
+        Matplotlib Axes object with episodes plotted to it
     """
     # Attempt to extract walks from a WalkStatistics instance
     episodes = getattr(episodes, 'walks', episodes)
@@ -363,21 +369,22 @@ def plot_episodes(episodes, env=None, add_env_to_plot=True, max_episodes=MAX_PAT
     return ax
 
 
-def plot_episode(episode, env, add_env_to_plot=True, alpha=None, color='k', title=None, ax=None):
+def plot_episode(episode, env, add_env_to_plot=True, alpha=None, color='k', title=None, ax=None, savefig=None):
     """
-    FUTURE: Docstring
+    Plot a single episode (walk) through the environment
 
     Args:
-        episode:
-        env:
-        add_env_to_plot:
-        alpha:
-        color:
-        title:
-        ax:
+        episode (list): List of states encountered in the walk
+        env: Environment traversed
+        add_env_to_plot (bool): If True, use plot_env to plot the environment to the image
+        alpha (float): (Optional) alpha (transparency) used for plotting the walk.
+        color (str): Matplotlib-style color designation
+        title (str): (Optional) Title to be added to the axes
+        ax (axes): (Optional) Matplotlib axes object to write the plot to
+        savefig (str): (Optional) string filename to output the figure to
 
     Returns:
-
+        Matplotlib Axes object with a single episode plotted to it
     """
     fig, ax = get_ax(ax)
 
@@ -403,6 +410,9 @@ def plot_episode(episode, env, add_env_to_plot=True, alpha=None, color='k', titl
     if title:
         ax.set_title(title)
 
+    if savefig:
+        ax.get_figure().savefig(f'{savefig}.{DEFAULT_PLOT_FORMAT}', format=DEFAULT_PLOT_FORMAT, dpi=DEFAULT_PLOT_DPI)
+
     return ax
 
 
@@ -424,7 +434,6 @@ def choose_text_size(n_chars, boxsize=1.0):
 
 def policy_dict_to_array(env, policy_dict):
     """
-    TODO: Clean this up
     Convert a policy stored as a dictionary into a dictionary of one or more policy numpy arrays shaped like env.desc
 
     Can also be used for a value_dict.
