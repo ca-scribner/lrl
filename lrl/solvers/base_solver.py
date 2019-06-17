@@ -25,7 +25,7 @@ class BaseSolver:
     """
     def __init__(self, env, gamma=0.9, value_function_tolerance=CONVERGENCE_TOLERANCE, policy_init_type='zeros',
                  max_iters=MAX_ITERATIONS, min_iters=MIN_ITERATIONS, max_steps_per_episode=MAX_STEPS_PER_EPISODE,
-                 score_while_training=False, raise_if_not_converged=True):
+                 score_while_training=False, raise_if_not_converged=False):
         self.env = env
         self.value_function_tolerance = value_function_tolerance
         self.max_iters = max_iters
@@ -164,8 +164,11 @@ class BaseSolver:
             logger.debug(f'{self.iteration}: delta_max = {self.iteration_data.get(i=-1)["delta_max"]:.1e}, '
                          f'policy_changes = {self.iteration_data.get(i=-1)["policy_changes"]}, '
                          f'converged = {converged}')
-        if self.iteration >= self.max_iters and raise_if_not_converged:
-            raise Exception(f"Max iterations ({self.max_iters}) reached - solver did not converge")
+        if self.iteration >= self.max_iters:
+            if raise_if_not_converged:
+                raise Exception(f"Max iterations ({self.max_iters}) reached - solver did not converge")
+            else:
+                logger.warning(f"Max iterations ({self.max_iters}) reached - solver did not converge")
 
     def converged(self):
         """
@@ -233,7 +236,7 @@ class BaseSolver:
         logger.debug(f"Walk completed in {len(states)} steps (terminal={terminal}), receiving total reward of {sum(rewards)}")
         return states, rewards, terminal
 
-    def score_policy(self, iters=10, max_steps=None, initial_state=None):
+    def score_policy(self, iters=500, max_steps=None, initial_state=None):
         """
         Score the current policy by performing 'iters' greedy walks through the environment and returning statistics
 
