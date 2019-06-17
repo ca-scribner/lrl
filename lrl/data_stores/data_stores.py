@@ -212,16 +212,22 @@ class WalkStatistics(object):
                     'terminal_fraction': terminals_array.sum() / terminals_array.shape[0],
                 }
 
-    def to_dataframe(self):
+    def to_dataframe(self, include_walks=False):
         """
         Return a Pandas DataFrame of the walk statistics
+
+        Args:
+            include_walks (bool): If True, add column including the entire walk for each iteration
 
         Returns:
             Pandas DataFrame
         """
         # Ensure everything is computed
         self.compute('all')
-        return pd.DataFrame(self.statistics, columns=self.statistics_columns)
+        df = pd.DataFrame(self.statistics, columns=self.statistics_columns)
+        if include_walks:
+            df['walks'] = self.walks
+        return df
 
     def to_csv(self, filename, **kwargs):
         """
