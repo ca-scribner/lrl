@@ -318,7 +318,7 @@ def plot_solver_result(env, policy=None, value=None, ax=None, add_env_to_plot=Tr
 
 
 def plot_episodes(episodes, env=None, add_env_to_plot=True, max_episodes=MAX_PATHS_ON_EPISODE_PLOT,
-                  alpha=None, color ='k', title=None, ax=None):
+                  alpha=None, color ='k', title=None, ax=None, savefig=None):
     """
     FUTURE: docstring
 
@@ -332,6 +332,7 @@ def plot_episodes(episodes, env=None, add_env_to_plot=True, max_episodes=MAX_PAT
         title:
         ax:
         max_episodes:
+        savefig:
 
     Returns:
 
@@ -355,6 +356,9 @@ def plot_episodes(episodes, env=None, add_env_to_plot=True, max_episodes=MAX_PAT
     for i_episode in i_episodes:
         episode = episodes[i_episode]
         ax = plot_episode(episode, env=env, add_env_to_plot=False, alpha=alpha, color=color, title=title, ax=ax)
+
+    if savefig:
+        ax.get_figure().savefig(f'{savefig}.{DEFAULT_PLOT_FORMAT}', format=DEFAULT_PLOT_FORMAT, dpi=DEFAULT_PLOT_DPI)
 
     return ax
 
