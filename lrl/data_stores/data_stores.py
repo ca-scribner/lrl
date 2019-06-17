@@ -10,8 +10,20 @@ class GeneralIterationData:
     set of extra bindings for convenience.
 
     The present object has no checks to ensure consistency between added records (all have same fields, etc.).  If any
-    columns are missing from an added record, the underlying Pandas DataFrame will treat these as default missing
-    records.
+    columns are missing from an added record, outputting to a dataframe will result in Pandas treating these as missing
+    columns from a record.
+
+    Args:
+        columns (list): An optional list of column names for the data (if specified, this sets the order of the
+                        columns in any output Pandas DataFrame or csv)
+
+    Attributes:
+        columns: A list of column names for the data.  If specified, this sets the order of any columns being output to
+        Pandas DataFrame or csv
+        _data: Internal data store.  List of dictionaries representing records.  Intended to be internal in future, but
+               at present gives easy access to records for slicing.
+
+    DOCTODO: Add example of usage
     """
 
     def __init__(self, columns=None):
@@ -83,62 +95,88 @@ class WalkStatistics(object):
 
     Statistics are lazily computed and memorized
 
-    TODO: Explain attributes
+    Attributes:
+        walks (list): List of all walks passed to the data object (raw data)
+        rewards (list): List of the total reward for each walk (raw data)
+        steps (list): List of the total steps taken for each walk (raw data)
+        terminals (list): List of whether each input walk was terminal (raw data)
+
+    DOCTODO: Add example usage.  show plot_episodes
     """
     def __init__(self):
         self.rewards = []
         self.walks = []
-        self.statistics = []
+        self._statistics = []
         self.steps = []
         self.terminals = []
 
         # Column names/order used for outputting to dataframe
-        self.statistics_columns = ['walk_index', 'reward', 'steps', 'terminal',
-                                   'reward_mean', 'reward_median', 'reward_std', 'reward_min', 'reward_max',
-                                   'steps_mean', 'steps_median', 'steps_std', 'steps_min', 'steps_max',
-                                   'terminal_fraction']
+        self._statistics_columns = ['walk_index', 'reward', 'steps', 'terminal',
+                                    'reward_mean', 'reward_median', 'reward_std', 'reward_min', 'reward_max',
+                                    'steps_mean', 'steps_median', 'steps_std', 'steps_min', 'steps_max',
+                                    'terminal_fraction']
 
     def get_statistic(self, statistic='reward_mean', index=-1):
         """
         Return a lazily computed and memorized statistic about the rewards from walks 0 to index
 
-        If the statistic has not been previous computed, it will be computed here.  See .compute() for definition of
-        statistics available
+        If the statistic has not been previous computed, it will be computed and returned.  See .get_statistics() for
+        list of statistics available
 
         Side Effects:
             self.statistics[index] will be computed using self.compute() if it has not been already
 
         Args:
-            statistic: See .compute() for available statistics
-            index: Walk index at which statistics are computed (statistics are computed for walks 0 through index)
+            statistic (str): See .compute() for available statistics
+            index (int): Walk index for requested statistic
+
+        Notes:
+            Statistics are computed for all walks up to and including the requested statistic.  For example if walks
+            have rewards of [1, 3, 5, 10], get_statistic('reward_mean', index=2) returns 3 (mean of [1, 3, 5]).
+
+        DOCTODO: Example usage (show getting some statistics)
 
         Returns:
             int or float: Value of the statistic requested
         """
-        # if self.statistics[index] is None:
-        #     self.compute(index=index)
-        # return self.statistics[index][statistic]
         return self.get_statistics(index)[statistic]
 
     def get_statistics(self, index=-1):
         """
-        Return a lazily computed and memorized dictionary of all statistics about the rewards from walks 0 to index
+        Return a lazily computed and memorized dictionary of all statistics about walks 0 to index
 
-        If the statistic has not been previous computed, it will be computed here.  See .compute() for definition of
-        statistics available
+        If the statistic has not been previous computed, it will be computed here.
 
         Side Effects:
             self.statistics[index] will be computed using self.compute() if it has not been already
 
         Args:
-            index: Walk index at which statistics are computed (statistics are computed for walks 0 through index)
+            index (int): Walk index for requested statistic
 
         Returns:
-            int or float: Value of the statistic requested
+            dict:
+                # Details about this iteration
+                walk_index: Index of episode
+                terminal: Boolean of whether this episode was terminal
+                reward: This episode's reward (included to give easy access to per-iteration data)
+                steps: This episode's steps (included to give easy access to per-iteration data)
+
+                # Statistics computed for all episodes up to and including this episode
+                reward_mean:
+                reward_median:
+                reward_std:
+                reward_max:
+                reward_min:
+                steps_mean:
+                steps_median:
+                steps_std:
+                steps_max:
+                steps_min:
+                terminal_fraction:
         """
-        if self.statistics[index] is None:
+        if self._statistics[index] is None:
             self.compute(index=index)
-        return self.statistics[index]
+        return self._statistics[index]
 
     def add(self, reward, walk, terminal):
         """
@@ -156,7 +194,7 @@ class WalkStatistics(object):
         self.steps.append(len(walk))
         self.walks.append(walk)
         self.terminals.append(terminal)
-        self.statistics.append(None)
+        self._statistics.append(None)
 
     def compute(self, index=-1, force=False):
         """
@@ -166,35 +204,35 @@ class WalkStatistics(object):
             self.statistics[index] will be updated
 
         Args:
-            index (int or 'all'): If integer, the index of the walk to compute statistics for (up to and including this
-                                  walk).  Eg: If 3, compute statistics for index=3 (eg: reward_mean is the mean of
-                                  rewards from walks 0, 1, 2, and 3).
+            index (int or 'all'): If integer, the index of the walk for which statistics are computed.  Eg: If index==3,
+                                  compute the statistics (see get_statistics() for list) for the series of walks from
+                                  0 up to and not including 3 (typical python indexing rules)
                                   If 'all', compute statistics for all indices, skipping any that have been previously
                                   computed unless force == True
-            force (bool): If True, always recompute statistics even if they already exist.  If False, only compute if no
-                          previous statistics exist.
+            force (bool): If True, always recompute statistics even if they already exist.
+                          If False, only compute if no previous statistics exist.
 
         Returns:
             None
         """
         if index == 'all':
             # Compute all indices by calling this recursively
-            for i in range(len(self.statistics)):
+            for i in range(len(self._statistics)):
                 self.compute(index=i, force=force)
         else:
             # Compute a single index
             # Interpret index, which could be negative
             if index < 0:
-                index = len(self.statistics) + index
+                index = len(self._statistics) + index
 
             # Get an inclusive slice_end index for grabbing rewards
             slice_end = index + 1
 
-            if (self.statistics[index] is None) or force:
+            if (self._statistics[index] is None) or force:
                 reward_array = np.array(self.rewards[:slice_end])
                 steps_array = np.array(self.steps[:slice_end])
                 terminals_array = np.array(self.terminals[:slice_end])
-                self.statistics[index] = {
+                self._statistics[index] = {
                     'reward': reward_array[-1],
                     'reward_mean': np.mean(reward_array),
                     'reward_median': np.median(reward_array),
@@ -216,6 +254,8 @@ class WalkStatistics(object):
         """
         Return a Pandas DataFrame of the walk statistics
 
+        See .get_statistics() for a definition of each column.  Order of columns is set through self.statistics_columns
+
         Args:
             include_walks (bool): If True, add column including the entire walk for each iteration
 
@@ -224,7 +264,9 @@ class WalkStatistics(object):
         """
         # Ensure everything is computed
         self.compute('all')
-        df = pd.DataFrame(self.statistics, columns=self.statistics_columns)
+
+        # Return as a DataFrame
+        df = pd.DataFrame(self._statistics, columns=self._statistics_columns)
         if include_walks:
             df['walks'] = self.walks
         return df
@@ -233,22 +275,16 @@ class WalkStatistics(object):
         """
         Write statistics to csv via the Pandas DataFrame
 
-        Statistics are output such that each row represents the statistics up to and including that walk.  Each row
-        includes fields for:
-            walk_index: The walk index of this row
-            reward, steps: The reward and steps obtained for this walk
-            *_mean, *_median, *_min, *_max, *_std: Statistics for reward or steps results up to and including this walk
-            terminal: Whether this walk was terminal (ended by the environment stating the game was finished)
-            terminal_fraction: Fraction of runs up until this point that were terminal
-        Order of columns is set through self.statistics_columns
+        See .get_statistics() for a definition of each column.  Order of columns is set through self.statistics_columns
 
         Args:
             filename (str): Filename or full path to output data to
-            kwargs (dict): Optional arguments to  be passed to DataFrame.to_csv()
+            kwargs (dict): Optional arguments to be passed to DataFrame.to_csv()
 
         Returns:
             None
         """
+        # Ensure everything is computed
         self.compute('all')
         self.to_dataframe().to_csv(filename, index=False, **kwargs)
 
@@ -256,7 +292,7 @@ class WalkStatistics(object):
         self.compute()
 
         return 'walk: {}, reward: {}, reward_mean: {}, reward_std: {}, reward_max: {}, reward_min: {}, ' \
-               'runs: {}'.format(
+               'steps: {}, steps_mean: {}'.format(
                     self.get_statistic(statistic='walk_index', index=-1),
                     self.get_statistic(statistic='reward', index=-1),
                     self.get_statistic(statistic='reward_mean', index=-1),
@@ -272,30 +308,44 @@ class DictWithHistory(MutableMapping):
     """
     Dictionary-like object that maintains a history of all changes, either incrementally or at set timepoints
 
-    Content is stored in dictionary _data as a list of entries of (timepoint, content).  The most recent content is
-    always available in _data[-1][1]
+    This object has access like a dictionary, but stores data internally such that the user can later recreate the state
+    of the data from a past timepoint.
+
+    The intended use of this object is to store large objects which are iterated on (such as value or policy functions)
+    in a way that a history of changes can be reproduced without having to store a new copy of the object every time.
+    For example, when doing 10000 episodes of Q-Learning in a grid world with 2500 states, we can retain the full
+    policy history during convergence (eg: answer "what was my policy after episode 527") without keeping 10000 copies
+    of a nearly-identical 2500 element numpy array or dict.  The cost for this is some computation, although this
+    generally has not been seen to be too significant (~10's of seconds for a large Q-Learning problem in testing)
+
+    Args:
+        timepoint_mode (str):
+            explicit: Timepoint incrementing is handled explicitly by the user (the timepoint only changes if the
+                      user invokes .update_timepoint()
+            implicit: Timepoint incrementing is automatic and occurs on every setting action, including redundant
+                      sets (setting a key to a value it already holds).  This is useful for a timehistory of all
+                      sets to the object
+        tolerance (float): Absolute tolerance to test for when replacing values.  If a value to be set is less than
+                           tolerance different from the current value, the current value is not changed.
+
+    Attributes:
+        timepoint_mode: See above args for definition
+        current_timpoint: Timepoint that will be written to next
+        absolute_tolerance: Tolerance applied when deciding whether new data is the same as current data
+        _data (dict): (intended to be internal) store for all data, where data is kept as a list of (timepoint, content)
+                      tuples.
 
     Warnings:
         Deletion of keys is not specifically supported.  Deletion likely works for the most recent timepoint, but the
         history does not handle deleted keys properly
-        Only numeric datatypes are supported.  This could be fixed with modifications to the checks for recording
-        repeated data in __setitem__
-        To avoid logging data just because of rounding error, items are only set if np.isclose(old_val, new_val) is
-        False.  Default tolerance for isclose is currently used, but this could be improved easily if needed.
+        Numeric data may work best due to how new values are compared to existing data, although tuples have also been
+        tested.  See __setitem__ for more detail
+
+    DOCTODO: Add example
     """
-    def __init__(self, timepoint_mode='explicit', tolernace=1e-7):
+    def __init__(self, timepoint_mode='explicit', tolerance=1e-7):
         """
         Initialize DictWithHistory
-
-        Args:
-            timepoint_mode (str):
-                explicit: Timepoint incrementing is handled explicitly by the user (the timepoint only changes if the
-                          user invokes .update_timepoint()
-                implicit: Timepoint incrementing is automatic and occurs on every setting action, including redundant
-                          sets (setting a key to a value it already holds).  This is useful for a timehistory of all
-                          sets to the object
-            tolerance (float): Absolute tolerance to test for when replacing values.  If a value to be set is less than
-                               tolerance different from the current value, the current value is not changed.
         """
         self._data = {}
 
@@ -304,23 +354,40 @@ class DictWithHistory(MutableMapping):
         else:
             raise ValueError(f'Invalid value for timepoint_mode "{timepoint_mode}"')
 
-        # Current integer timepoint used for writing data
         self.current_timepoint = 0
-
-        self.absolute_tolerance = tolernace
+        self.absolute_tolerance = tolerance
 
     def __getitem__(self, key):
-        # Return most recent _data[item]
         """
         Return the most recent value for key
 
         Returns:
-            Whatever is contained in ._data[key][-1][-1] (return only the most most recent timepoint, not the
+            Whatever is contained in ._data[key][-1][-1] (return only the value from the most recent timepoint, not the
             timepoint associated with it)
         """
         return self._data[key][-1][-1]
 
     def __setitem__(self, key, value):
+        """
+        Set the value at a key if it is different from the current data stored at key
+
+        Data stored here is stored under the self.current_timepoint.
+
+        Difference between new and current values is assessed by:
+            new_value == old_value
+            np.isclose(new_value, old_value)
+        where if neither returns True, the new value is taken to be different from the current value
+
+        Side Effects:
+            If timepoint_mode == 'implicit', self.current_timepoint will be incremented after setting data
+
+        Args:
+            key: Key under which data is stored
+            value: Value to store at key
+
+        Returns:
+            None
+        """
         if key not in self._data:
             self._data[key] = [(self.current_timepoint, value)]
         else:
@@ -333,8 +400,8 @@ class DictWithHistory(MutableMapping):
                 try:
                     matches = np.all(np.isclose(self._data[key][-1][1], value, atol=self.absolute_tolerance, rtol=0.0))
                 except (ValueError, TypeError):
-                    # ValueError in np.all means the values we're comparing dont broadcast together (might have different
-                    # sizes, etc), so they don't match.
+                    # ValueError in np.all means the values we're comparing dont broadcast together (might have
+                    # different sizes, etc), so they don't match.
                     # TypeError means they're not easily coerced into the same type, so that's even more different...
                     pass
             if not matches:
@@ -360,14 +427,14 @@ class DictWithHistory(MutableMapping):
 
     def get_value_at_timepoint(self, key, timepoint=-1):
         """
-        Returns the value corresponding to a key at the timepoint that is closest to but not over timepoint.
+        Returns the value corresponding to a key at the timepoint that is closest to but not greater than timepoint
 
-        Raises a KeyError if key did not exist at timepoint.
+        Raises a KeyError if key did not exist at timepoint.  Raises an IndexError if no timepoint exists that applies
 
         Args:
             key (immutable): Any valid dictionary key
             timepoint (int): Integer timepoint to return value for.  If negative, it is interpreted like typical python
-                             slicing (-1 means most recent, -2 means second most recent, ...)
+                             indexing (-1 means most recent, -2 means second most recent, ...)
 
         Returns:
             numeric: Value corresponding to key at the timepoint closest to but not over timepoint
@@ -394,7 +461,7 @@ class DictWithHistory(MutableMapping):
 
         Args:
             timepoint (int): Integer timepoint to return data as of.  If negative, it is interpreted like typical python
-                             slicing (-1 means most recent, -2 means second most recent, ...)
+                             indexing (-1 means most recent, -2 means second most recent, ...)
 
         Returns:
             dict: Data at timepoint

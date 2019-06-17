@@ -23,7 +23,7 @@ class ValueIteration(BaseSolver):
         # String description of convergence criteria
         self.convergence_desc = f"Max delta in value function < {self.value_function_tolerance}"
 
-        self.value = DictWithHistory(timepoint_mode='explicit', tolernace=self.value_function_tolerance*0.1)
+        self.value = DictWithHistory(timepoint_mode='explicit', tolerance=self.value_function_tolerance * 0.1)
         for k in self.env.P.keys():
             self.value[k] = value_function_initial_value
 
@@ -109,7 +109,7 @@ class PolicyIteration(BaseSolver):
         # String description of convergence criteria
         self.convergence_desc = "1 iteration without change in policy"
 
-        self.value = DictWithHistory(timepoint_mode='explicit', tolernace=self.value_function_tolerance*0.1)
+        self.value = DictWithHistory(timepoint_mode='explicit', tolerance=self.value_function_tolerance * 0.1)
         for k in self.env.P.keys():
             self.value[k] = value_function_initial_value
 

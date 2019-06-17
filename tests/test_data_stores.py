@@ -45,7 +45,7 @@ def test_WalkStatistics_add(supply_ws_data, ws_sample):
     assert ws.terminals == terminals
     assert ws.rewards == rewards
     assert ws.steps == steps
-    assert ws.statistics == statistics
+    assert ws._statistics == statistics
     assert ws.walks[1] == walks[1]
 
 
@@ -82,12 +82,12 @@ def test_WalkStatistics_compute(ws_sample):
     # Test computing incrementally
     for i in range(len(rewards)):
         ws_incremental.compute(index=i)
-        assert ws_incremental.statistics[i] == statistics[i]
+        assert ws_incremental._statistics[i] == statistics[i]
 
     # Test computing statistics all at once
     for i in range(len(rewards)):
         ws_all_at_once.compute(index='all')
-    assert ws_incremental.statistics == ws_all_at_once.statistics
+    assert ws_incremental._statistics == ws_all_at_once._statistics
 
 
 def test_DictWithHistory():
