@@ -17,12 +17,6 @@ class GeneralIterationData:
         columns (list): An optional list of column names for the data (if specified, this sets the order of the
                         columns in any output Pandas DataFrame or csv)
 
-    Attributes:
-        columns: A list of column names for the data.  If specified, this sets the order of any columns being output to
-        Pandas DataFrame or csv
-        _data: Internal data store.  List of dictionaries representing records.  Intended to be internal in future, but
-               at present gives easy access to records for slicing.
-
     DOCTODO: Add example of usage
     """
 
@@ -37,12 +31,19 @@ class GeneralIterationData:
         Returns:
             None
         """
-        self._data = []
+        #: list: Column names used for data output.
+        #:
+        #: If specified, this sets the order of any columns being output to Pandas DataFrame or csv
         self.columns = columns
+
+        #: list: List of dictionaries representing records.
+        #:
+        #: Intended to be internal in future, but public at present to give easy access to records for slicing
+        self.data = []
 
     def add(self, d):
         """
-        Appends a dictionary to the internal list data structure.
+        Add a dictionary record to the data structure.
 
         Args:
             d (dict): Dictionary of data to be stored
@@ -50,7 +51,7 @@ class GeneralIterationData:
         Returns:
             None
         """
-        self._data.append(d)
+        self.data.append(d)
 
     def get(self, i=-1):
         """
@@ -60,9 +61,9 @@ class GeneralIterationData:
             i (int): Index of data to return (can be any valid list index, including -1 and slices)
 
         Returns:
-            ith entry(ies) if the data store
+            dict: ith entry in the data store
         """
-        return self._data[i]
+        return self.data[i]
 
     def to_dataframe(self):
         """
@@ -72,7 +73,7 @@ class GeneralIterationData:
             dataframe: Pandas DataFrame of the data
         """
         # Add structure so everything is in same order and not random from dict
-        df = pd.DataFrame(self._data, columns=self.columns)
+        df = pd.DataFrame(self.data, columns=self.columns)
         return df
 
     def to_csv(self, filename, **kwargs):
@@ -95,22 +96,25 @@ class WalkStatistics(object):
 
     Statistics are lazily computed and memorized
 
-    Attributes:
-        walks (list): List of all walks passed to the data object (raw data)
-        rewards (list): List of the total reward for each walk (raw data)
-        steps (list): List of the total steps taken for each walk (raw data)
-        terminals (list): List of whether each input walk was terminal (raw data)
-
     DOCTODO: Add example usage.  show plot_episodes
     """
     def __init__(self):
+        #: list: List of the total reward for each walk (raw data)
         self.rewards = []
+
+        #: list: List of all walks passed to the data object (raw data)
         self.walks = []
-        self._statistics = []
+
+        #: list: List of the total steps taken for each walk (raw data)
         self.steps = []
+
+        #: list: List of whether each input walk was terminal (raw data)
         self.terminals = []
 
-        # Column names/order used for outputting to dataframe
+        #: list: List of dicts of computed statistics
+        self._statistics = []
+
+        #: list: Column names/order used for outputting to dataframe
         self._statistics_columns = ['walk_index', 'reward', 'steps', 'terminal',
                                     'reward_mean', 'reward_median', 'reward_std', 'reward_min', 'reward_max',
                                     'steps_mean', 'steps_median', 'steps_std', 'steps_min', 'steps_max',
@@ -137,7 +141,7 @@ class WalkStatistics(object):
         DOCTODO: Example usage (show getting some statistics)
 
         Returns:
-            int or float: Value of the statistic requested
+            int, float: Value of the statistic requested
         """
         return self.get_statistics(index)[statistic]
 
@@ -154,25 +158,28 @@ class WalkStatistics(object):
             index (int): Walk index for requested statistic
 
         Returns:
-            dict:
-                # Details about this iteration
-                walk_index: Index of episode
-                terminal: Boolean of whether this episode was terminal
-                reward: This episode's reward (included to give easy access to per-iteration data)
-                steps: This episode's steps (included to give easy access to per-iteration data)
+            dict: Details and statistics about this iteration, with keys:
 
-                # Statistics computed for all episodes up to and including this episode
-                reward_mean:
-                reward_median:
-                reward_std:
-                reward_max:
-                reward_min:
-                steps_mean:
-                steps_median:
-                steps_std:
-                steps_max:
-                steps_min:
-                terminal_fraction:
+            **Details about this iteration:**
+
+            * **walk_index** (*int*): Index of episode
+            * **terminal** (*bool*): Boolean of whether this episode was terminal
+            * **reward** (*float*): This episode's reward (included to give easy access to per-iteration data)
+            * **steps** (*int*): This episode's steps (included to give easy access to per-iteration data)
+
+            **Statistics computed for all episodes up to and including this episode:**
+
+            * **reward_mean** (*float*):
+            * **reward_median** (*float*):
+            * **reward_std** (*float*):
+            * **reward_max** (*float*):
+            * **reward_min** (*float*):
+            * **steps_mean** (*float*):
+            * **steps_median** (*float*):
+            * **steps_std** (*float*):
+            * **steps_max** (*float*):
+            * **steps_min** (*float*):
+            * **terminal_fraction** (*float*):
         """
         if self._statistics[index] is None:
             self.compute(index=index)
@@ -205,12 +212,14 @@ class WalkStatistics(object):
 
         Args:
             index (int or 'all'): If integer, the index of the walk for which statistics are computed.  Eg: If index==3,
-                                  compute the statistics (see get_statistics() for list) for the series of walks from
-                                  0 up to and not including 3 (typical python indexing rules)
-                                  If 'all', compute statistics for all indices, skipping any that have been previously
-                                  computed unless force == True
-            force (bool): If True, always recompute statistics even if they already exist.
-                          If False, only compute if no previous statistics exist.
+                compute the statistics (see get_statistics() for list) for the series of walks from
+                0 up to and not including 3 (typical python indexing rules)
+                If 'all', compute statistics for all indices, skipping any that have been previously
+                computed unless force == True
+            force (bool):
+                If True, always recompute statistics even if they already exist.
+
+                If False, only compute if no previous statistics exist.
 
         Returns:
             None
@@ -319,43 +328,41 @@ class DictWithHistory(MutableMapping):
     generally has not been seen to be too significant (~10's of seconds for a large Q-Learning problem in testing)
 
     Args:
-        timepoint_mode (str):
-            explicit: Timepoint incrementing is handled explicitly by the user (the timepoint only changes if the
-                      user invokes .update_timepoint()
-            implicit: Timepoint incrementing is automatic and occurs on every setting action, including redundant
-                      sets (setting a key to a value it already holds).  This is useful for a timehistory of all
-                      sets to the object
-        tolerance (float): Absolute tolerance to test for when replacing values.  If a value to be set is less than
-                           tolerance different from the current value, the current value is not changed.
+        timepoint_mode (str): One of:
 
-    Attributes:
-        timepoint_mode: See above args for definition
-        current_timpoint: Timepoint that will be written to next
-        absolute_tolerance: Tolerance applied when deciding whether new data is the same as current data
-        _data (dict): (intended to be internal) store for all data, where data is kept as a list of (timepoint, content)
-                      tuples.
+        * explicit: Timepoint incrementing is handled explicitly by the user (the timepoint only changes if the user
+          invokes .update_timepoint()
+        * implicit: Timepoint incrementing is automatic and occurs on every setting action, including redundant sets
+          (setting a key to a value it already holds).  This is useful for a timehistory of all sets to the object
+
+        tolerance (float): Absolute tolerance to test for when replacing values.  If a value to be set is less than
+            tolerance different from the current value, the current value is not changed.
 
     Warnings:
-        Deletion of keys is not specifically supported.  Deletion likely works for the most recent timepoint, but the
-        history does not handle deleted keys properly
-        Numeric data may work best due to how new values are compared to existing data, although tuples have also been
-        tested.  See __setitem__ for more detail
+        * Deletion of keys is not specifically supported.  Deletion likely works for the most recent timepoint, but the
+          history does not handle deleted keys properly
+        * Numeric data may work best due to how new values are compared to existing data, although tuples have also been
+          tested.  See __setitem__ for more detail
 
     DOCTODO: Add example
     """
     def __init__(self, timepoint_mode='explicit', tolerance=1e-7):
-        """
-        Initialize DictWithHistory
-        """
+        #: float: Tolerance applied when deciding whether new data is the same as current data
+        self._absolute_tolerance = tolerance
+
+        #: list: Internal data storage
         self._data = {}
+
+        #: str: See Parameters for definition
+        self.timepoint_mode = None
 
         if timepoint_mode in ['explicit', 'implicit']:
             self.timepoint_mode = timepoint_mode
         else:
             raise ValueError(f'Invalid value for timepoint_mode "{timepoint_mode}"')
 
+        #: int: Timepoint that will be written to next
         self.current_timepoint = 0
-        self.absolute_tolerance = tolerance
 
     def __getitem__(self, key):
         """
@@ -373,16 +380,18 @@ class DictWithHistory(MutableMapping):
 
         Data stored here is stored under the self.current_timepoint.
 
-        Difference between new and current values is assessed by:
-            new_value == old_value
-            np.isclose(new_value, old_value)
+        Difference between new and current values is assessed by testing:
+
+        * new_value == old_value
+        * np.isclose(new_value, old_value)
+
         where if neither returns True, the new value is taken to be different from the current value
 
         Side Effects:
             If timepoint_mode == 'implicit', self.current_timepoint will be incremented after setting data
 
         Args:
-            key: Key under which data is stored
+            key (immutable): Key under which data is stored
             value: Value to store at key
 
         Returns:
@@ -398,7 +407,7 @@ class DictWithHistory(MutableMapping):
                 matches = True
             else:
                 try:
-                    matches = np.all(np.isclose(self._data[key][-1][1], value, atol=self.absolute_tolerance, rtol=0.0))
+                    matches = np.all(np.isclose(self._data[key][-1][1], value, atol=self._absolute_tolerance, rtol=0.0))
                 except (ValueError, TypeError):
                     # ValueError in np.all means the values we're comparing dont broadcast together (might have
                     # different sizes, etc), so they don't match.

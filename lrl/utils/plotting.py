@@ -78,8 +78,10 @@ def plot_env(env, ax=None, edgecolor='k', resize_figure=True, savefig=None):
         ax (axes): (Optional) Axes object to plot on
         edgecolor (str): Color of the edge of each grid square (matplotlib format)
         resize_figure (bool): If true, resize the figure to:
-                              width  = 0.5 * n_cols inches
-                              height = 0.5 * n_rows inches
+
+            * width  = 0.5 * n_cols inches
+            * height = 0.5 * n_rows inches
+
         savefig (str): If not None, save the figure to this filename
     Returns:
          Axes: Matplotlib axes object
@@ -135,13 +137,13 @@ def plot_solver_results(env, solver=None, policy=None, value=None, savefig=None,
         solver (BaseSolver): Solver object used to solve the environment
         policy (dict, DictWithHistory): Policy for the environment, keyed by integer state-index or tuples of state
         value (dict, DictWithHistory): Value function for the environment, keyed by integer state-index or tuples of
-                                          state
+            state
         savefig (str): If not None, save figures to this name.  For cases with multiple policies per grid square, this
-                       will be the suffix on the name (eg: for policy at Vx=1, Vy=2, we get name of savefig_1_2.png)
+            will be the suffix on the name (eg: for policy at Vx=1, Vy=2, we get name of savefig_1_2.png)
         **kwargs (dict): Other arguments passed to plot_solver_result
 
     Returns:
-        list of Matplotlib Axes for the plots
+        list: list of Matplotlib Axes for the plots
     """
     # Interpret a solver object if specified
     if solver is not None:
@@ -227,12 +229,14 @@ def plot_solver_result(env, policy=None, value=None, ax=None, add_env_to_plot=Tr
 
 
     Args:
-        env:
+        env (Racetrack, FrozenLake, other environment): Instantiated environment object
         policy (np.array): Policy for each grid square in the environment, in the same shape as env.desc
                            For plotting environments where we have multiple states for a given grid square (eg for
-                           Racetrack), call plot_policy for each given additional state (eg: for v=(0, 0), v=(1, 0), ..)
-        value:
-        ax:
+                           Racetrack), will call plotting for each given additional state (eg: for v=(0, 0), v=(1, 0), ..)
+        value: (np.array): Value for each grid square in the environment, in the same shape as env.desc
+                           For plotting environments where we have multiple states for a given grid square (eg for
+                           Racetrack), will call plotting for each given additional state (eg: for v=(0, 0), v=(1, 0), ..)
+        ax (Axes): (OPTIONAL) Matplotlib axes object to plot to
         add_env_to_plot (bool): If True, add the environment map to the axes before plotting policy using plot_env()
         hide_terminal_locations (bool): If True, all known terminal locations will have no text printed (as policy here
                                         doesn't matter)
@@ -240,9 +244,11 @@ def plot_solver_result(env, policy=None, value=None, ax=None, add_env_to_plot=Tr
         title (str): (Optional) title added to the axes object
         savefig (str): (Optional) string filename to output the figure to
         size_policy (str, numeric): (Optional) Specification of text font size for policy printing.  One of:
-                                        'auto': Will automatically choose a font size based on the number of characters
-                                                to be printed
-                                        str or numeric: Interpreted as a Matplotlib style font size designation
+
+            * 'auto': Will automatically choose a font size based on the number of characters
+              to be printed
+            * *str* or *numeric*: Interpreted as a Matplotlib style font size designation
+
         size_value (str, numeric): (Optional) Specification of text font size for value printing.  Same interface as
                                    size_policy
         value_precision (int): Precision of value function to be included on figures
@@ -324,7 +330,7 @@ def plot_solver_result(env, policy=None, value=None, ax=None, add_env_to_plot=Tr
 def plot_episodes(episodes, env=None, add_env_to_plot=True, max_episodes=MAX_PATHS_ON_EPISODE_PLOT,
                   alpha=None, color ='k', title=None, ax=None, savefig=None):
     """
-    FUTURE: docstring
+    Plot a list of episodes through an environment over a drawing of the environment
 
     Args:
         episodes (list, WalkStatistics): Series of walks to be plotted.  If WalkStatistics instance, .walks will be
@@ -421,7 +427,8 @@ def choose_text_size(n_chars, boxsize=1.0):
     """
     Helper to choose an appropriate text size when plotting policies.  Size is chosen based on length of text
 
-    Return is calibrated
+    Return is calibrated to something that typically looked nice in testing
+
     Args:
         n_chars: Text caption to be added to plot
         boxsize (float): Size of box inside which text should print nicely.  Used as a scaling factor.  Default is 1 inch
@@ -440,65 +447,90 @@ def policy_dict_to_array(env, policy_dict):
 
     policy_dict is a dictionary relating state to policy at that state in one of several forms.
     The dictionary can be keyed by state-index or a tuple of state (eg: (x, y, [other_state]), with x=0 in left
-    column, y=0 in bottom row)
-    If using tuples of state, state may be more than just x,y location as shown above, eg: (x, y, v_x, v_y).  If
-    len(state_tuple) > 2, we must plot each additional state separately.
+    column, y=0 in bottom row). If using tuples of state, state may be more than just x,y location as shown above,
+    eg: (x, y, v_x, v_y).  If len(state_tuple) > 2, we must plot each additional state separately.
 
     Translate policy_dict into a policy_list_of_tuples of:
-      [(other_state_0, array_of_policy_at_other_state_0),
-       (other_state_1, array_of_policy_at_other_state_1),
-      ... ]
+
+    .. code-block:: python
+
+       [(other_state_0, array_of_policy_at_other_state_0),
+        (other_state_1, array_of_policy_at_other_state_1),
+         ... ]
+
     where the array_of_policy_at_other_state_* is in the same shape as env.desc (eg: cell [3, 2] of the array is the
     policy for the env.desc[3, 2] location in the env).
 
     Examples:
         If state is described by tuples of (x, y) (where there is a single unique state for each grid location), eg:
-            policy_dict = {
-                (0, 0): policy_0_0,
-                (0, 1): policy_0_1,
-                (0, 2): policy_0_2,
-                ...
-                (1, 0): policy_2_1,
-                (1, 1): policy_2_1,
-                ...
-                (xmax, ymax): policy_xmax_ymax,
-                }
+
+        .. code-block:: python
+
+           policy_dict = {
+               (0, 0): policy_0_0,
+               (0, 1): policy_0_1,
+               (0, 2): policy_0_2,
+               ...
+               (1, 0): policy_2_1,
+               (1, 1): policy_2_1,
+               ...
+               (xmax, ymax): policy_xmax_ymax,
+               }
+
         then a single-element list is returned of the form:
-            returned = [
-                (None, np_array_of_policy),
-            ]
+
+        .. code-block:: python
+
+           returned = [
+             (None, np_array_of_policy),
+           ]
+
         where np_array_of_policy is of the same shape as env.desc (eg: the map), with each element corresponding to the
         policy at that grid location (for example, cell [3, 2] of the array is the policy for the env.desc[3, 2]
         location in the env).
 
         If state is described by tuples of (x, y, something_else, [more_something_else...]), for example if
         state = (x, y, Vx, Vy) like below:
-            policy_dict = {
-                (0, 0, 0, 0): policy_0_0_0_0,
-                (0, 0, 1, 0): policy_0_0_1_0,
-                (0, 0, 0, 1): policy_0_0_0_1,
-                ...
-                (1, 0, 0, 0): policy_1_0_0_0,
-                (1, 0, 0, 1): policy_1_0_0_1,
-                ...
-                (xmax, ymax, Vxmax, Vymax): policy_xmax_ymax_Vxmax_Vymax,
+
+        .. code-block:: python
+
+           policy_dict = {
+               (0, 0, 0, 0): policy_0_0_0_0,
+               (0, 0, 1, 0): policy_0_0_1_0,
+               (0, 0, 0, 1): policy_0_0_0_1,
+               ...
+               (1, 0, 0, 0): policy_1_0_0_0,
+               (1, 0, 0, 1): policy_1_0_0_1,
+               ...
+               (xmax, ymax, Vxmax, Vymax): policy_xmax_ymax_Vxmax_Vymax,
+               }
+
         then a list is returned of the form:
-            returned = [
-            #   (other_state, np_array_of_policies_for_this_other_state)
-                ((0, 0), np_array_of_policies_with_Vx-0_Vy-0),
-                ((1, 0), np_array_of_policies_with_Vx-0_Vy-0),
-                ((0, 1), np_array_of_policies_with_Vx-0_Vy-0),
-                ...
-                ((Vxmax, Vymax), np_array_of_policies_with_Vxmax_Vymax),
-            ]
+
+        .. code-block:: python
+
+           returned = [
+           #   (other_state, np_array_of_policies_for_this_other_state)
+               ((0, 0), np_array_of_policies_with_Vx-0_Vy-0),
+               ((1, 0), np_array_of_policies_with_Vx-0_Vy-0),
+               ((0, 1), np_array_of_policies_with_Vx-0_Vy-0),
+               ...
+               ((Vxmax, Vymax), np_array_of_policies_with_Vxmax_Vymax),
+           ]
+
         where each element corresponds to a different combination of all the non-location state.  This means that each
         element of the list is:
-            (Identification of this case, shaped xy-grid of policies for this case)
+
+        .. code-block:: python
+
+           (Identification_of_this_case, shaped_xy-grid_of_policies_for_this_case)
+
         and can be easily plotted over the environment's map.
 
         If policy_dict is keyed by state-index rather than state directly, the same logic as above still applies.
 
-        NOTE: If using an environment (with policy keyed by either index or state) that has more than one unique state
+    Notes:
+        If using an environment (with policy keyed by either index or state) that has more than one unique state
         per grid location (eg: state has more than (x, y)), then environment must also have an index_to_state attribute
         to identify overlapping states.  This constraint exists both for policies keyed by index or state, but the code
         could be refactored to avoid this limitation for state-keyed policies if required.
@@ -551,6 +583,8 @@ def policy_dict_to_array(env, policy_dict):
 
 
 def get_ax(ax):
+    """Returns figure and axes objects associated with an axes, instantiating if input is None
+    """
     if ax is None:
         fig, ax = plt.subplots()
     else:

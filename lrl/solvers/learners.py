@@ -15,12 +15,40 @@ SOLVER_ITERATION_DATA_FIELDS = ['iteration', 'time', 'delta_max', 'policy_change
                                 'converged']
 CONVERGENCE_TOLERANCE = 0.1
 
+# FUTURE: Fix documentation/inheritance after this sphinx bug is fixed:
+#   https://github.com/sphinx-doc/sphinx/issues/741
+
 
 class QLearning(BaseSolver):
-    """Solver class for Q-Learning
+    """
+    Solver class for Q-Learning
 
-    FUTURE: Improve this docstring.  Add refs
+    Notes:
+        See also BaseSolver for additional attributes, members, and arguments (missing due here to Sphinx bug with
+        inheritance in docs)
 
+    Examples:
+        See examples directory
+
+    Args:
+        alpha (float, dict): (OPTIONAL)
+
+        * If None, default linear decay schedule applied, decaying from 0.1 at iter 0 to 0.025 at max iter
+        * If float, interpreted as a constant alpha value
+        * If dict, interpreted as specifications to a decay function as defined in decay_functions()
+
+        epsilon (float, dict): (OPTIONAL)
+
+        * If None, default linear decay schedule applied, decaying from 0.25 at iter 0 to 0.05 at max iter
+        * If float, interpreted as a constant epsilon value
+        * If dict, interpreted as specifications to a decay function as defined in decay_functions()
+
+        num_episodes_for_convergence (int): Number of consecutive episodes with delta_Q < tolerance to say a solution is
+            converged
+        **kwargs: Other arguments passed to BaseSolver
+
+    Returns:
+        None
     """
     def __init__(self, env, value_function_tolerance=CONVERGENCE_TOLERANCE,
                  alpha=None, epsilon=None, max_iters=MAX_ITERATIONS, min_iters=MIN_ITERATIONS,
@@ -66,44 +94,54 @@ class QLearning(BaseSolver):
                 'initial_value': float(epsilon),
             }
 
+        #: int: Counter for number of transitions experienced during all learning
         self.transitions = 0
 
         # Estimate of Q, keyed by ((state), (action)) where state/action can be integers or qualified tuples
+        #: DictWithHistory: Space-efficient dict-like storage of the current and all former q functions
         self.q = None
         self.init_q()
 
-        # Replace standard iteration_data store with one that includes more fields
+        #: GeneralIterationData: Data store for iteration data
+        #:
+        #: Overloads BaseSolver's iteration_data attribute with one that includes more fields
         self.iteration_data = GeneralIterationData(columns=SOLVER_ITERATION_DATA_FIELDS)
 
-        # Additional statistics during solving
+        #: WalkStatistics: Data store for statistics from training episodes
         self.walk_statistics = WalkStatistics()
 
+        #: int: Number of consecutive episodes with delta_Q < tolerance to say a solution is converged
         self.num_episodes_for_convergence = num_episodes_for_convergence
 
-        # String description of convergence criteria
-        self.convergence_desc = f"{self.num_episodes_for_convergence} episodes with max delta in Q function < " \
+        #: str: String description of convergence criteria
+        self._convergence_desc = f"{self.num_episodes_for_convergence} episodes with max delta in Q function < " \
             f"{self._value_function_tolerance}"
 
 
     @property
     def alpha(self):
+        """Returns value of alpha at current iteration"""
         return decay_functions(self._alpha_settings)(self._iteration)
 
     @property
     def epsilon(self):
+        """Returns value of epsilon at current iteration"""
         return decay_functions(self._epsilon_settings)(self._iteration)
 
     def step(self, count_transition=True):
         """
         Take and learn from a single step in the environment.
 
-        FUTURE: Improve docstring.
+        Applies the typical Q-Learning approach to learn from the experienced transition
+
+        Args:
+            count_transition (bool): If True, increment transitions counter self.transitions.  Else, do not.
 
         Returns:
-            tuple of (transition, delta_q), where
-                transition: (state, reward, next_state, is_terminal)
-                delta_q: The (absolute) change in q caused by this step
+            (tuple): tuple containing:
 
+            * **transition** (*tuple): Tuple of (state, reward, next_state, is_terminal)
+            * **delta_q** (*float*): The (absolute) change in q caused by this step
         """
         logger.debug(f'Taking and learning from a step in the environment (transition count = {self.transitions})')
         state = self.env.s
@@ -144,10 +182,10 @@ class QLearning(BaseSolver):
         """
         Returns a numpy array of q values at the current state in the same order as the standard action indexing
         Args:
-            state:
+            state (int, tuple): Descriptor of current state in environment
 
         Returns:
-
+            np.array: Numpy array of q for all actions
         """
         actions = list(range(self.env.action_space.n))
         try:
@@ -164,11 +202,11 @@ class QLearning(BaseSolver):
         Return an action chosen by epsilon-greedy scheme based on the current estimate of Q
 
         Args:
-            state:
+            state (int, tuple): Descriptor of current state in environment
             epsilon: Optional.  If None, self.epsilon is used
 
         Returns:
-
+            int or tuple: action chosen
         """
         if epsilon is None:
             epsilon = self.epsilon
@@ -206,14 +244,15 @@ class QLearning(BaseSolver):
         Perform and learn from a single episode in the environment (one walk from start to finish)
 
         Side Effects:
-            self.value: Updated to the newest estimate of the value function
-            self.policy: Updated to the greedy policy according to the value function estimate
-            self.iteration: Increment iteration counter by 1
-            self.iteration_data: Add new record to iteration data store
-            self.env: Reset and then walked through
+
+        * self.value: Updated to the newest estimate of the value function
+        * self.policy: Updated to the greedy policy according to the value function estimate
+        * self.iteration: Increment iteration counter by 1
+        * self.iteration_data: Add new record to iteration data store
+        * self.env: Reset and then walked through
 
         Returns:
-
+            None
         """
         if self._iteration % 500 == 0:
             logger.info(f"Performing iteration (episode) {self._iteration} of Q-Learning")
@@ -271,6 +310,12 @@ class QLearning(BaseSolver):
         self._iteration += 1
 
     def converged(self):
+        """
+        Returns True if solver is converged.
+
+        Returns:
+            bool: Convergence status (True=converged)
+        """
         logger.debug(f'Assessing convergence')
         # Try to use a previously memorized convergence result (converged field indicates whether this convergence
         # test was previously True/False for at this iteration)
@@ -330,7 +375,7 @@ class QLearning(BaseSolver):
         Initialize self.q, a dict-like DictWithHistory object for storing the state-action value function q
 
         Args:
-            init_val:
+            init_val (float): Value to give all states in the initialized q
 
         Returns:
             None
@@ -355,27 +400,32 @@ def decay_functions(settings):
     Returns a decay function that accepts timestep as argument and returns a value
 
     Essentially a pre-configured interpolator with different possible settings.  Return from this function is a
-    lambda function of signature:
-        function(timestep)
-    where timestep is the value to interpolate on, and function is preconfigured using a given interpolation schedule.
+    lambda function of signature **function(timestep)** where timestep is the value to interpolate on, and function is
+    preconfigured using a given interpolation schedule.
 
     Schedules supported:
-        constant: Returns a constant value, regardless of input timestep
-            Args:
-                initial_value (float): The value to be returned when the function is invoked
-        linear: Returns a linearly interpolated value, with extrapolation outside the given range being constant
-            Args:
-                initial_value (float): The value to be returned when the function is invoked with timestep <=
-                                       initial_timestep
-                initial_timestep (int): The timestep associated with the initial value
-                final_value (float): The value to be returned when the function is invoked with timestep >=
-                                     initial_timestep
-                final_timestep (int): The timestep associated with the final value
-            Return logic:
-                If timestep <= initial_timestep: return initial_value
-                elif initial_timestep < timestep < final_timestep: linearly interpolate between initial_value and
-                                                                   final_value
-                elif timestep >= final_timestep: return final_value
+
+    * constant: Returns a constant value, regardless of input timestep
+
+      Args:
+          initial_value (float): The value to be returned when the function is invoked
+    * linear: Returns a linearly interpolated value, with extrapolation outside the given range being constant
+
+      Args:
+          initial_value (float): The value to be returned when the function is invoked with timestep <= initial_timestep
+
+          initial_timestep (int): The timestep associated with the initial value
+
+          final_value (float): The value to be returned when the function is invoked with timestep >= initial_timestep
+
+          final_timestep (int): The timestep associated with the final value
+
+      Return logic:
+          If timestep <= initial_timestep: return initial_value
+
+          elif initial_timestep < timestep < final_timestep: linearly interpolate between initial_value and final_value
+
+          elif timestep >= final_timestep: return final_value
 
     FUTURE: Add exponential decay
 
@@ -383,8 +433,7 @@ def decay_functions(settings):
         settings (dict): Contains at least "type" and other values as described above based on chosen type
 
     Returns:
-        An function with signature:
-            value_at_timestep = function(timestep)
+        function: Function with signature value_at_timestep = function(timestep)
     """
     if settings['type'] == 'constant':
         return lambda timestep: settings['initial_value']

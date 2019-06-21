@@ -11,6 +11,9 @@ logger = logging.getLogger(__name__)
 
 MAX_POLICY_EVAL_ITERS_LAST_IMPROVEMENT = 1000
 
+# FUTURE: Fix documentation/inheritance after this sphinx bug is fixed:
+#   https://github.com/sphinx-doc/sphinx/issues/741
+
 
 class ValueIteration(BaseSolver):
     """
@@ -19,12 +22,12 @@ class ValueIteration(BaseSolver):
     Implemented as per Sutton and Barto's Reinforcement Learning (http://www.incompleteideas.net/book/RLbook2018.pdf,
     page 82).
 
+    Notes:
+        See also BaseSolver for additional attributes, members, and arguments (missing here due to Sphinx bug with
+        inheritance in docs)
+
     Examples:
         See examples directory
-
-    Attributes:
-        value (DictWithHistory): Space-efficient dict-like storage of the current and all former value functions
-        See BaseSolver class for additional
 
     Args:
         value_function_initial_value (float): Value to initialize all elements of the value function to
@@ -40,6 +43,8 @@ class ValueIteration(BaseSolver):
         self._convergence_desc = f"Max delta in value function < {self._value_function_tolerance}"
 
         self.value = DictWithHistory(timepoint_mode='explicit', tolerance=self._value_function_tolerance * 0.1)
+        """DictWithHistory: Space-efficient dict-like storage of the current and all former value functions
+        """
         for k in self.env.P.keys():
             self.value[k] = value_function_initial_value
 
@@ -48,10 +53,11 @@ class ValueIteration(BaseSolver):
         Perform a single iteration of value iteration, updating self.value and storing metadata about the iteration.
 
         Side Effects:
-            self.value: Updated to the newest estimate of the value function
-            self.policy: Updated to the greedy policy according to the value function estimate
-            self.iteration: Increment iteration counter by 1
-            self.iteration_data: Add new record to iteration data store
+
+        * self.value: Updated to the newest estimate of the value function
+        * self.policy: Updated to the greedy policy according to the value function estimate
+        * self.iteration: Increment iteration counter by 1
+        * self.iteration_data: Add new record to iteration data store
 
         Returns:
             None
@@ -118,12 +124,13 @@ class PolicyIteration(BaseSolver):
     Implemented as per Sutton and Barto's Reinforcement Learning (http://www.incompleteideas.net/book/RLbook2018.pdf,
     page 80).
 
+    Notes:
+        See also BaseSolver for additional attributes, members, and arguments (missing here due to Sphinx bug with
+        inheritance in docs)
+
     Examples:
         See examples directory
 
-    Attributes:
-        value (DictWithHistory): Space-efficient dict-like storage of the current and all former value functions
-        See BaseSolver class for additional
 
     Args:
         value_function_initial_value (float): Value to initialize all elements of the value function to
@@ -144,13 +151,15 @@ class PolicyIteration(BaseSolver):
 
         # Maximum number of policy evaluations invoked in one Evaluate-Improve iteration.  Note that this does not apply
         # if on the final Evaluate-Improve iteration (eg: if previous Evaluate-Improve iter found 0 policy changes)
-        self.max_policy_eval_iters_per_improvement = max_policy_eval_iters_per_improvement
-        self.policy_evaluation_type = policy_evaluation_type
+        self._max_policy_eval_iters_per_improvement = max_policy_eval_iters_per_improvement
+        self._policy_evaluation_type = policy_evaluation_type
 
         # String description of convergence criteria
         self._convergence_desc = "1 iteration without change in policy"
 
         self.value = DictWithHistory(timepoint_mode='explicit', tolerance=self._value_function_tolerance * 0.1)
+        """DictWithHistory: Space-efficient dict-like storage of the current and all former value functions
+        """
         for k in self.env.P.keys():
             self.value[k] = value_function_initial_value
 
@@ -165,9 +174,9 @@ class PolicyIteration(BaseSolver):
             None
         """
         if max_iters is None:
-            max_iters = self.max_policy_eval_iters_per_improvement
+            max_iters = self._max_policy_eval_iters_per_improvement
         value_new = policy_evaluation(value_function=self.value.to_dict(), env=self.env, policy=self.policy, gamma=self._gamma,
-                                      evaluation_type=self.policy_evaluation_type,
+                                      evaluation_type=self._policy_evaluation_type,
                                       tolerance=self._value_function_tolerance,
                                       max_iters=max_iters)
 
@@ -205,10 +214,11 @@ class PolicyIteration(BaseSolver):
         Perform a single iteration of policy iteration, updating self.value and storing metadata about the iteration.
 
         Side Effects:
-            self.value: Updated to the newest estimate of the value function
-            self.policy: Updated to the greedy policy according to the value function estimate
-            self.iteration: Increment iteration counter by 1
-            self.iteration_data: Add new record to iteration data store
+
+        * self.value: Updated to the newest estimate of the value function
+        * self.policy: Updated to the greedy policy according to the value function estimate
+        * self.iteration: Increment iteration counter by 1
+        * self.iteration_data: Add new record to iteration data store
 
         Returns:
             None
@@ -282,16 +292,17 @@ def policy_evaluation(value_function, env, gamma, policy=None, evaluation_type='
     Compute the value function of either a given policy of the best available policy (argmax)
 
     This function serves multiple purposes:
+
     -   With evaluation_type == max and max_iters > 1, we iterate on the value function in the typical Value Iteration
         algorithm fashion by iteratively computing:
-            V_t+1(s) = argmax_a(sum_s'(P(s, a, s')*(Reward(s, a, s') + gamma * V_t(s'))))
+            :math:`V_{t+1}(s) = argmax_a(\sum^{s'}(P(s, a, s')*(Reward(s, a, s') + gamma * V_t(s'))))`
         This returns both the value function and the greedy policy that was computed to generate it
     -   With evaluation_type == max and max_iters == 1, we compute the greedy value function and policy given our most
         recent estimate of the value function.  This is effectively the policy_improvement step in Policy Iteration, but
         also returns an value function as it must be computed anyway.
     -   With evaluation_type == on-policy, max_iters > 0, and a policy defined, we either iterate or solve directly for
         the value function in the typical Policy Evaluation style of the Policy Iteration algorithm:
-            V_t+1(s) for policy = sum_s'(P(s, pi(s), s')*(Reward(s, pi(s), s') + gamma * V_t(s')))
+            :math:`V_{t+1}(s, policy) = \sum^{s'}(P(s, pi(s), s')*(Reward(s, pi(s), s') + gamma * V_t(s')))`
         This returns the value function that indicates the value if following the given policy
 
     Args:
@@ -306,11 +317,13 @@ def policy_evaluation(value_function, env, gamma, policy=None, evaluation_type='
                               equations (typically much slower and higher memory than the iterative method)
         max_iters: Maximum number of iterations for any iterative method
         tolerance: Convergence tolerance on the value function for any iterative method (converged if maximum
-                   elementwise difference between iterations is less than tolerance)
+            elementwise difference between iterations is less than tolerance)
 
     Returns:
-        (dict): Value Function computed here
-        (dict): (returned if evaluation_type == max) Greedy policy corresponding to returned Value Function
+        (tuple): tuple containing:
+
+        - **value_function** (*dict*): Value Function computed here
+        - **greedy_policy** (*dict*): Greedy policy corresponding to returned Value Function (if evaluation_type=='max')
     """
     if evaluation_type == 'max' or evaluation_type == 'on-policy-iterative':
         if evaluation_type == 'on-policy-iterative':
@@ -334,8 +347,10 @@ def policy_evaluation_iterative(value_function, env, gamma, policy=None, evaluat
     See docstring for policy_evaluation() for more details.
 
     Returns:
-        (dict): Value Function computed here
-        (dict): (returned if evaluation_type == max) Greedy policy corresponding to returned Value Function
+        (tuple): tuple containing:
+
+        - **value_function** (*dict*): Value Function computed here
+        - **greedy_policy** (*dict*): Greedy policy corresponding to returned Value Function (if evaluation_type=='max')
     """
     logger.debug(f"Computing policy_evaluation for evaluation_type == {evaluation_type}")
 
@@ -400,14 +415,15 @@ def policy_evaluation_direct(env, gamma, policy):
 
     See docstring for policy_evaluation() for more details.
 
-    NOTE: This method is almost always slower and more memory intensive than policy_evaluation_iterative due to the
-          construction and solving of the matrix.  scipy's sparse matrix solver spsolve allowed for solution speeds that
-          were comparable to the iterative method and maybe could be a bit faster, but it was not implemented here.
-          Maybe something to try in future (to implement here, we need to refactor the construction of the A matrix
-          below to incrementally build as a sparse matrix rather than build as dense and then convert)
+    Notes:
+        This method is almost always slower and more memory intensive than policy_evaluation_iterative due to the
+        construction and solving of the matrix.  scipy's sparse matrix solver spsolve allowed for solution speeds that
+        were comparable to the iterative method and maybe could be a bit faster, but it was not implemented here.
+        Maybe something to try in future (to implement here, we need to refactor the construction of the A matrix
+        below to incrementally build as a sparse matrix rather than build as dense and then convert)
 
     Returns:
-        (TO BE UPDATED): Value Function computed
+        dict: Newly computed value function
     """
     logger.debug(f"Computing policy_evaluation_direct")
     a = []

@@ -1,5 +1,8 @@
 from lrl.data_stores import GeneralIterationData, WalkStatistics, DictWithHistory
 
+# FUTURE: Fix documentation/inheritance after this sphinx bug is fixed:
+#   https://github.com/sphinx-doc/sphinx/issues/741
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -27,49 +30,43 @@ class BaseSolver:
     Examples:
         See examples directory
 
-    Attributes:
-        env: Environment passed as input
-        policy (DictWithHistory): Space-efficient dict-like storage of the current and all former policies
-        iteration_data (GeneralIterationData): Data describing iteration results during solving of the environment (eg:
-                                               time for this iteration, maximum change in value function for this
-                                               iteration, number of policy changes this iteration, is iteration
-                                               converged, ...)
-        scoring_summary (GeneralIterationData): Summary data from scoring runs during training if score_while_training
-                                                is enabled.  Data includes mean reward for a given scoring run, etc.
-        scoring_walk_statistics (dict): Detailed scoring data from scoring runs during training if score_while_training
-                                                is enabled.  Data is indexed by iteration number (from scoring_summary)
-                                                and contains data for each walk in that scoring run as a WalkStatistics
-                                                instance
-
     Args:
         env: Environment instance, such as from RaceTrack() or RewardingFrozenLake()
         gamma (float): Discount factor
         value_function_tolerance (float): Tolerance for convergence of value function during solving (also used for
-                                          Q (state-action) value function tolerance
+            Q (state-action) value function tolerance
         policy_init_mode (str): Initialization mode for policy.  See init_policy() for more detail
         max_iters (int): Maximum number of iterations to solve environment
         min_iters (int): Minimum number of iterations before checking for solver convergence
-        raise_if_not_converged (bool): If True, will raise exception when environment hits max_iters without convergence
-                                       If False, a warning will be logged
+        raise_if_not_converged (bool): If True, will raise exception when environment hits max_iters without
+            convergence. If False, a warning will be logged.
         max_steps_per_episode (int): Maximum number of steps allowed per episode (helps when evaluating policies that
-                                     can lead to infinite walks)
+            can lead to infinite walks)
         score_while_training (dict, bool): Dict specifying whether the policy should be scored during training (eg:
-                                           test how well a policy is doing every N iterations)
-                                           If dict, must be of format:
-                                                n_trains_per_eval (int): Number of training iters between evaluations
-                                                n_evals (int): Number of episodes for a given policy evaluation
-                                           If True, score with default settings of
-                                                n_trains_per_eval: 500
-                                                n_evals: 500
-                                           If False, do not score during training
+            test how well a policy is doing every N iterations).
+
+            If dict, must be of format:
+
+            * n_trains_per_eval (int): Number of training iters between evaluations
+            * n_evals (int): Number of episodes for a given policy evaluation
+            If True, score with default settings of:
+
+            * n_trains_per_eval: 500
+            * n_evals: 500
+
+            If False, do not score during training.
 
     Returns:
         None
+
     """
+
     def __init__(self, env, gamma=0.9, value_function_tolerance=CONVERGENCE_TOLERANCE, policy_init_mode='zeros',
                  max_iters=MAX_ITERATIONS, min_iters=MIN_ITERATIONS, max_steps_per_episode=MAX_STEPS_PER_EPISODE,
                  score_while_training=False, raise_if_not_converged=False):
         self.env = env
+        """Racetrack, RewardingFrozenLakeEnv: Environment being solved
+        """
         self._value_function_tolerance = value_function_tolerance
         self._max_iters = max_iters
         self._min_iters = min_iters
@@ -87,30 +84,56 @@ class BaseSolver:
         # state denoted as either an index or a tuple
         self._policy_init_type = None
         self.policy = None
+        """DictWithHistory: Space-efficient dict-like storage of the current and all former policies.
+        """
+
         self.init_policy(init_type=policy_init_mode)
 
         # Storage for iteration metadata
         self._iteration = 0
         self.iteration_data = GeneralIterationData(columns=SOLVER_ITERATION_DATA_FIELDS)
-
+        """GeneralIterationData: Data describing iteration results during solving of the environment.
+        
+        Fields include:
+        
+        * time: time for this iteration
+        * delta_max: maximum change in value function for this iteration
+        * policy_changes: number of policy changes this iteration
+        * converged: boolean denoting if solution is converged after this iteration
+        """
         if score_while_training is True:
             self._score_while_training = DEFAULT_SCORE_WHILE_TRAINING
         else:
             self._score_while_training = score_while_training
         self.scoring_summary = GeneralIterationData(columns=SCORING_SUMMARY_DATA_FIELDS)
+        """GeneralIterationData: Summary data from scoring runs computed during training if score_while_training == True
+        
+        Fields include:
+        
+        * reward_mean: mean reward obtained during a given scoring run
+        """
+
         self.scoring_walk_statistics = {}
+        """dict, WalkStatistics: Detailed scoring data from scoring runs held as a dict of WalkStatistics objects.
+        
+        Data is indexed by iteration number (from scoring_summary)"""
 
     def init_policy(self, init_type=None):
         """
         Initialize self.policy, which is a dictionary-like DictWithHistory object for storing current and past policies
 
         Args:
-            init_type: Type of initialization.  If defined, will store to self.policy_init_type.  Can be any of:
-                       None: Uses value in self.policy_init_type
-                       zeros: Initialize policy to all 0's (first action)
-                       random: Initialize policy to a random action (action indices are random integer from
-                               [0, len(self.env.P[this_state])], where P is the transition matrix and P[state] is a list
-                               of all actions available in the state)
+            init_type (None, str): Method used for initializing policy.  Can be any of:
+
+                * None: Uses value in self.policy_init_type
+                * zeros: Initialize policy to all 0's (first action)
+                * random: Initialize policy to a random action (action indices are random integer from
+                    [0, len(self.env.P[this_state])], where P is the transition matrix and P[state] is a list
+                    of all actions available in the state)
+
+        Side Effects:
+            If init_type is specified as argument, it is also stored to self.policy_init_type (overwriting previous
+            value)
 
         Returns:
             None
@@ -167,9 +190,9 @@ class BaseSolver:
 
         Args:
             raise_if_not_converged (bool): If true, will raise an exception if convergence is not reached before hitting
-                                           maximum number of iterations.  If None, uses self.raise_if_not_converged
+                maximum number of iterations.  If None, uses self.raise_if_not_converged
             score_while_training (bool, dict, None): If None, use self.score_while_training.  Else, accepts inputs of
-                                                     same format as accepted for score_while_training solver inputs
+                same format as accepted for score_while_training solver inputs
 
         Returns:
             None
@@ -233,18 +256,21 @@ class BaseSolver:
         Perform a walk through the environment using the current policy
 
         Side Effects:
-            self.env will be reset and optionally then forced into initial_state
+            * self.env will be reset and optionally then forced into initial_state
 
         Args:
             max_steps: Maximum number of steps to be taken in the walk (step 0 is taken to be entering initial state)
-                       If None, defaults to self.max_steps_per_episode
+                If None, defaults to self.max_steps_per_episode
             initial_state: State for the environment to be placed in to start the walk (used to force a deterministic
-                           start from anywhere in the environment rather than the typical start position)
+                start from anywhere in the environment rather than the typical start position)
 
         Returns:
-            list of states encountered in the walk (including initial and final states)
-            list of rewards obtained during the walk (rewards[0] == 0 as step 0 is simply starting the game)
-            boolean indicating if the walk was terminal according to the environment
+            (tuple): tuple containing:
+
+            - **states** (*list*): boolean indicating if the walk was terminal according to the environment
+            - **rewards** (*list*): list of rewards obtained during the walk (rewards[0] == 0 as step 0 is simply starting
+              the game)
+            - **is_terminal** (*bool*): Boolean denoting whether the environment returned that the walk terminated naturally
         """
         if max_steps is None:
             max_steps = self._max_steps_per_episode
@@ -276,12 +302,15 @@ class BaseSolver:
 
         Side Effects:
             self.env will be reset
+            more side effects
+
+            more side effects
 
         Args:
             iters: Number of walks through the environment
             max_steps: Maximum number of steps allowed per walk.  If None, defaults to self.max_steps_per_episode
             initial_state: State for the environment to be placed in to start the walk (used to force a deterministic
-                           start from anywhere in the environment rather than the typical start position)
+                start from anywhere in the environment rather than the typical start position)
 
         Returns:
             WalkStatistics: Object containing statistics about the walks (rewards, number of steps, etc.)

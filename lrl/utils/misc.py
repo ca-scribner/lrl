@@ -66,8 +66,10 @@ def dict_differences(d1, d2):
         d2 (dict): Dictionary to compare
 
     Returns:
-        float: Maximum elementwise difference
-        float: Sum of elementwise differences
+        tuple: tuple containing:
+
+        * *float*: Maximum elementwise difference
+        * *float*: Sum of elementwise differences
     """
     keys = d1.keys() | d2.keys()
     delta_max = -np.inf
@@ -85,35 +87,74 @@ class Timer:
     A Simple Timer class for timing code
     """
     def __init__(self):
+        #: timeit.default_timer object initialized at instantiation
         self.start = timer()
 
     def elapsed(self):
+        """
+        Return the time elapsed since this object was instantiated, in seconds
+
+        Returns:
+            float: Time elapsed in seconds
+        """
         return timer() - self.start
 
 
-def rc_to_xy(row, col, rows):
+def xy_to_rc(track, x, y):
     """
-    Convert from (row, col) coordinates (eg: numpy array) to (x, y) coordinates (bottom left = 0,0)
+    Convert a track (x, y) location to (row, col)
 
-   (x, y) convention:
-        (0,0) in bottom left
-        x +ve to the right
-        y +ve up
+    (x, y) convention
+
+    * (0,0) in bottom left
+    * x +ve to the right
+    * y +ve up
+
     (row,col) convention:
-        (0,0) in top left
-        row +ve down
-        col +ve to the right
+
+    * (0,0) in top left
+    * row +ve down
+    * col +ve to the right
 
     Args:
-        row: This row
-        col: This col
-        rows: Total rows
+        track (list): List of strings describing the track
+        x (int): x coordinate to be converted
+        y (int): y coordinate to be converted
 
     Returns:
-        tuple: int x, int y
+        tuple: (row, col)
     """
-    x = col
-    y = rows - row - 1
+    r = (len(track) - 1) - y
+    c = x
+    return r, c
+
+
+def rc_to_xy(track, r, c):
+    """
+    Convert a track (row, col) location to (x, y)
+
+    (x, y) convention
+
+    * (0,0) in bottom left
+    * x +ve to the right
+    * y +ve up
+
+    (row,col) convention:
+
+    * (0,0) in top left
+    * row +ve down
+    * col +ve to the right
+
+    Args:
+        track (list): List of strings describing the track
+        r (int): row coordinate to be converted
+        c (int): col coordinate to be converted
+
+    Returns:
+        tuple: (x, y)
+    """
+    x = c
+    y = (len(track) - 1) - r
     return x, y
 
 
@@ -127,14 +168,14 @@ def params_to_name(params, n_chars=4, sep='_', first_fields=None, key_remap=None
     Args:
         params (dict): Dictionary to convert to a string
         n_chars (int): Number of characters per key to add to string.
-                       Eg: if key='abcdefg' and n_chars=4, output will be 'abcd'
+            Eg: if key='abcdefg' and n_chars=4, output will be 'abcd'
         sep (str): Separator character between fields (uses one of these between key and value, and two between
-                   different key-value pairs
+            different key-value pairs
         first_fields (list): Optional list of keys to write ahead of other keys (otherwise, output order it sorted)
         key_remap (list): List of dictionaries of {key_name: new_key_name} for rewriting keys into more readable strings
 
     Returns:
-        string
+        str:
     """
     if first_fields is not None:
         keys = [key for key in first_fields if key in params.keys()]

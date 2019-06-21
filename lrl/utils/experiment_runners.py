@@ -29,27 +29,29 @@ def run_experiment(env, params, output_path):
         output_path (str): Path to output data (plots and csvs)
 
     Output to output_path:
-        iteration_data.csv: Data about each solver iteration (shows how long each iteration took, how quickly the solver
-                            converged, etc.)
-        solver_results*.png: Images of policy (and value for planners).  If environment state is defined by xy alone,
-                             a single image is returned.  Else, an image for each additional state is returned (eg:
-                             for state = (x, y, vx, vy), plots of solver_results_vx_vy.png are returned for each
-                             (vx, vy))
-        scored_episodes.csv and scored_episodes.png: Detailed data for each episode taken during the final scoring, and
-                                                     a composite image of those episodes in the environment
-        intermediate_scoring_results.csv: Summary data from each evaluation during training (shows history of how the
-                                          solver improved over time)
-        intermediate_scoring_results_*.png: Composite images of the intermediate scoring results taken during training,
-                                            indexed by the iteration at which they were produced
-        training_episodes.csv and training_episodes.png: Detailed data for each episode taken during training, and an
-                                                         composite image of those episodes exploring the environment
-                                                         (only available for an explorational learner like Q-Learning)
+
+        * **iteration_data.csv**: Data about each solver iteration (shows how long each iteration took, how quickly the
+          solver converged, etc.)
+        * **solver_results*.png**: Images of policy (and value for planners).  If environment state is defined by xy
+          alone, a single image is returned.  Else, an image for each additional state is returned
+          (eg: for state = (x, y, vx, vy), plots of solver_results_vx_vy.png are returned for each (vx, vy))
+        * **scored_episodes.csv** and **scored_episodes.png**: Detailed data for each episode taken during the final
+          scoring, and a composite image of those episodes in the environment
+        * **intermediate_scoring_results.csv**: Summary data from each evaluation during training (shows history of how
+          the solver improved over time)
+        * **intermediate_scoring_results_*.png**: Composite images of the intermediate scoring results taken during
+          training, indexed by the iteration at which they were produced
+        * **training_episodes.csv** and **training_episodes.png**: Detailed data for each episode taken during training,
+          and an composite image of those episodes exploring the environment (only available for an explorational
+          learner like Q-Learning)
 
     Returns:
-        dict of:
-            solver: Fully populated solver object (after solving env)
-            scored_results: WalkStatistics object of results from scoring the final policy
-            solve_time: Time in seconds used to solve the env (eg: run solver.iterate_to_convergence())
+        (dict): dict containing:
+
+        * **solver** (*BaseSolver*, *ValueIteration*, *PolicyIteration*, *QLearner*): Fully populated solver object
+          (after solving env)
+        * **scored_results** (*WalkStatistics*): WalkStatistics object of results from scoring the final policy
+        * **solve_time** (*float*): Time in seconds used to solve the env (eg: run solver.iterate_to_convergence())
     """
     # Create the output path, cleaning out old results if needed
     if os.path.exists(output_path):
@@ -112,16 +114,18 @@ def run_experiments(environments, solver_param_grid, output_path='./output/'):
     """
     Runs a set of experiments defined by param_grid, writing results to output_path
 
-
     Args:
-        environments:
-        solver_param_grid:
-        output_path:
+        environments (list): List of instanced environments
+        solver_param_grid (dict): Solver parameters in suitable form for sklearn.model_selection.ParameterGrid
+        output_path (str): Relative path to which results will be output
 
-    Outputs:
-        grid_search_summary.csv: high-level summary of results
-        env_name/case_name: Directory with detailed results for each env/case combination See run_experiment for
-                            details on casewise output)
+    Output to output_path:
+
+    * For each environment:
+
+        * **env_name/grid_search_summary.csv**: high-level summary of results for this env
+        * **env_name/case_name**: Directory with detailed results for each env/case combination See run_experiment for
+          details on casewise output)
 
     Returns:
         None

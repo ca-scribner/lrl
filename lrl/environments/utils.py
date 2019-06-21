@@ -9,7 +9,7 @@ def get_terminal_locations(env):
         env: Instanced environment object such as Racetrack
 
     Returns:
-
+        (dict): Dictionary mapping states to terminality
     """
     # Build is_terminal to have an entry for each (x, y) location.
     # If P is keyed by state tuples, take the first two values in the tuple.  Else, try to convert from index to state.

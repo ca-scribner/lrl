@@ -2,13 +2,14 @@ import numpy as np
 
 from gym.envs.toy_text import discrete
 
+from lrl.utils.misc import rc_to_xy, xy_to_rc
+
 
 RACETRACK_DEFAULT_REWARDS = {
     'crash': -100,
     'time': -1,
     'goal': 100,
 }
-
 
 # Character map for the map characters (say that 10 times fast!)
 CHAR_MAP = {
@@ -233,11 +234,12 @@ class Racetrack(discrete.DiscreteEnv):
     an Agent to "slip" whereby their requested action is ignored (interpreted as if a=(0,0)).
 
     The tiles in the environment are:
-    (blank): Clean open (deterministic) road
-    O: Oily (stochastic) road
-    G: (terminal) grass
-    S: Starting location (agent starts at a random starting location).  After starting, S tiles behave like open road
-    F: Finish location(s) (agent must reach any of these tiles to receive positive reward
+
+    * (blank): Clean open (deterministic) road
+    * O: Oily (stochastic) road
+    * G: (terminal) grass
+    * S: Starting location (agent starts at a random starting location).  After starting, S tiles behave like open road
+    * F: Finish location(s) (agent must reach any of these tiles to receive positive reward
 
     The state space of the environment is described by xy location and xy velocity (with maximum velocity being a
     user-specified parameter).  For example, s=(3, 5, 1, -1) means the Agent is currently in the x=3, y=5 location
@@ -246,13 +248,17 @@ class Racetrack(discrete.DiscreteEnv):
     The action space of the environment is xy acceleration (with maximum acceleration being a user-specified parameter).
     For example, a=(-2, 1) means ax=-2, ay=-1.  Transitions are determined by the current velocity as well as the
     requested acceleration (with a cap set by Vmax of the environment), for example:
-        s=(3, 5, 1, -1), a=(-3, 1) --> s_prime=(1, 5, -2, 0)
+
+    * s=(3, 5, 1, -1), a=(-3, 1) --> s_prime=(1, 5, -2, 0)
+
     But if vx_max == +-1 then:
-        s=(3, 5, 1, -1), a=(-3, 1) --> s_prime=(2, 5, -1, 0)
+
+    * s=(3, 5, 1, -1), a=(-3, 1) --> s_prime=(2, 5, -1, 0)
 
     Note that sign conventions for location are:
-        x: 0 at leftmost column, positive to the right
-        y: 0 at bottommost row, positive up
+
+    * x: 0 at leftmost column, positive to the right
+    * y: 0 at bottommost row, positive up
 
     Args:
         track (list): List of strings describing the track (see racetrack_tracks.py for examples)
@@ -264,19 +270,11 @@ class Racetrack(discrete.DiscreteEnv):
                             by abs(x_a)+abs(y_a), representing the sum of change in acceleration in both directions
                             Default is infinite (eg: any accel described by x and y limits)
 
-    Attributes:
-        track: List of strings describing track (copy of input)
-        desc (np.array): Numpy character array of the track (better for printing on screen/accessing track at xy
-                         locations)
-        index_to_state (list): List to convert from state index to full tuple describing state
-                               (eg: index_to_state[state_index] -> state_tuple)
-        state_to_index (dict): Dict to convert from state tuple to state index
-                               (eg: state_to_index[state_tuple] -> state_index)
-        is_location_terminal (dict): Indicates if a state is terminal (eg, no rewards/transitions leading out of state).
-                                     Keyed by state tuple
-        (other attributes provided by parent DiscreteEnv class, such as action_space)
+    Notes:
+        See also discrete.DiscreteEnv for additional attributes, members, and arguments (missing due here to Sphinx bug
+        with inheritance in docs)
 
-        DOCTODO: Add examples
+    DOCTODO: Add examples
     """
 
     def __init__(self, track=None, x_vel_limits=None, y_vel_limits=None,
@@ -286,7 +284,10 @@ class Racetrack(discrete.DiscreteEnv):
             track = TRACKS['10x10']
         elif isinstance(track, str):
             track = TRACKS[track]
+        #: list: List of strings describing track
         self.track = track
+
+        #: np.array: Numpy character array of the track (better for printing on screen/accessing track at xy locations)
         self.desc = np.asarray(self.track, dtype='c')
 
         if x_vel_limits is None:
@@ -308,6 +309,7 @@ class Racetrack(discrete.DiscreteEnv):
         self._max_total_accel = max_total_accel
 
         self._char_map = CHAR_MAP
+        #: dict: Map from grid tile type to display color
         self.color_map = {k.encode(): self._char_map[k]['color'] for k in self._char_map}
 
         # Generate an OpenAI Gym DiscreteEnv style P matrix
@@ -320,15 +322,24 @@ class Racetrack(discrete.DiscreteEnv):
         # Instantiate the DiscreteEnv parent
         super().__init__(n_states, n_actions, p, starting_probability)
 
-        # Maps to convert indexed states/actions to actual (tuple) states and actions
+        #: list: Attribute to map from state index to full tuple describing state
+        #:
+        #: Ex: index_to_state[state_index] -> state_tuple
         self.index_to_state = [x[0] for x in list(self.P.items())]
+
+        #: dict: Attribute to map from state tuple to state index
+        #:
+        #: Ex: state_to_index[state_tuple] -> state_index
         self.state_to_index = {k: i for i, k in enumerate(self.index_to_state)}
         self.index_to_action = action_map
 
-        # xy location to isTerminal map (helps with plotting later)
+        #: dict: Attribute to map whether a state is terminal (eg: no rewards/transitions leading out of state).
+        #:
+        #: Keyed by state tuple
         self.is_location_terminal = terminal_locations
 
         # super().__init__ sets self.s as an index, whereas Racetrack uses a state tuple.  Convert s to it's state tuple
+        #: int, tuple: Current state (inherited from parent)
         self.s = list(self.P.items())[self.s][0]
 
     def reset(self):
@@ -416,71 +427,26 @@ def print_track(track, rc=None, xy=None, print_as='*'):
         print(line)
 
 
-def xy_to_rc(track, x, y):
-    """
-    Convert a track (x, y) location to (row, col)
-
-    (x, y) convention:
-        (0,0) in bottom left
-        x +ve to the right
-        y +ve up
-    (row,col) convention:
-        (0,0) in top left
-        row +ve down
-        col +ve to the right
-
-    :param track: Track owning the positions
-    :param x: x coordinate to be converted
-    :param y: y coordinate to be converted
-    :return: Tuple of (row, col)
-    """
-    r = (len(track) - 1) - y
-    c = x
-    return r, c
-
-
-def rc_to_xy(track, r, c):
-    """
-    Convert a track (row, col) location to (x, y)
-
-    (x, y) convention:
-        (0,0) in bottom left
-        x +ve to the right
-        y +ve up
-    (row,col) convention:
-        (0,0) in top left
-        row +ve down
-        col +ve to the right
-
-    :param track: Track owning the positions
-    :param row: row coordinate to be converted
-    :param col: col coordinate to be converted
-    :return: Tuple of (x, y)
-    """
-    x = c
-    y = (len(track) - 1) - r
-    return x, y
-
-
 def track_to_p_matrix(track, char_map=CHAR_MAP, x_vel_limits=None, y_vel_limits=None,
                       x_accel_limits=None, y_accel_limits=None, max_total_accel=np.inf):
     """
     Converts a map described by a list of strings to P-matrix format for an OpenAI Gym Discrete environment.
 
     Maps are specified using the following characters:
-        G: (Grass) Terminal location with reward
-        S: Starting location (can be one or more) with small negative reward.  Note that starting state will always have
-           0 velocity
-           FUTURE: Add velocity to start
-        " " (single space): Open track with small negative reward
-        F: Finish location with reward
-        O: Oil (slippery tile where an action randomly may not work as expected)
+
+    * G: (Grass) Terminal location with reward
+    * S: Starting location (can be one or more) with small negative reward.  Note that starting state will always have
+      0 velocity.  FUTURE: Add random velocity to start
+    * " " (single space): Open track with small negative reward
+    * F: Finish location with reward
+    * O: Oil (slippery tile where an action randomly may not work as expected)
+
     Rewards and terminal status are assessed based on someone ENTERING that state (eg: if you travel from a starting
     location to a wall, you get the wall's reward and terminal status)
 
     Sign conventions:
-        x: 0 at leftmost column, positive to the right
-        y: 0 at bottommost row, positive up
+    * x: 0 at leftmost column, positive to the right
+    * y: 0 at bottommost row, positive up
 
     Args:
         track: List of strings describing the track
@@ -490,17 +456,18 @@ def track_to_p_matrix(track, char_map=CHAR_MAP, x_vel_limits=None, y_vel_limits=
         x_accel_limits: (OPTIONAL) Tuple of (min, max) valid acceleration in x.  Default is (-2, 2).
         y_accel_limits: (OPTIONAL) Tuple of (min, max) valid acceleration in y.  Default is (-2, 2).
         max_total_accel: (OPTIONAL) Integer maximum total acceleration in one action.  Total acceleration is computed
-                         by abs(x_a)+abs(y_a), representing the sum of change in acceleration in both directions
-                         Default is infinite (eg: any accel described by x and y limits)
+            by abs(x_a)+abs(y_a), representing the sum of change in acceleration in both directions
+            Default is infinite (eg: any accel described by x and y limits)
 
     Returns:
-        Tuple of:
-            n_states (int): Number of states
-            n_actions (int): Number of actions
-            p: P matrix in DiscreteEnv format
-            starting_probability (list): Probability for all starting locations
-            action_map (dict): Map between tuple and integer actions
-            terminal_locations (dict): Map of locations which are terminal
+        (tuple): tuple containing:
+
+        * **n_states** (*int*): Number of states
+        * **n_actions** (*int*): Number of actions
+        * **p** (*dict*): P matrix in DiscreteEnv format
+        * **starting_probability** (*list*): Probability for all starting locations
+        * **action_map** (*dict*): Map between tuple and integer actions
+        * **terminal_locations** (*dict*): Map of locations which are terminal
     """
     # Defaults:
     if x_vel_limits is None:
@@ -608,12 +575,12 @@ def accel_within_limits(v, a, v_range):
     Accelerate the car while clipping to a velocity range
 
     Args:
-        v: starting velocity
-        a: acceleration
+        v (int): starting velocity
+        a (int): acceleration
         v_range (tuple): min and max velocity
 
     Returns:
-        integer velocity clipped to min/max v_range
+        (int): velocity, clipped to min/max v_range
     """
     v = v + a
     v = max(v, v_range[0])

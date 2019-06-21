@@ -151,14 +151,17 @@ class RewardingFrozenLakeEnv(discrete.DiscreteEnv):
     The surface is described using a grid like the following
 
         SFFF
+
         FHFH
+
         FFFH
+
         HFFG
 
-    S : starting point, safe
-    F : frozen surface, safe
-    H : hole, fall to your doom
-    G : goal, where the frisbee is located
+    * S: starting point, safe
+    * F: frozen surface, safe
+    * H: hole, fall to your doom
+    * G: goal, where the frisbee is located
 
     The episode ends when you reach the goal or fall in a hole.
     There are configurable rewards for reaching the goal, falling in a hole, and simply taking a step.
