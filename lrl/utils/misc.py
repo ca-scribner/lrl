@@ -100,9 +100,9 @@ class Timer:
         return timer() - self.start
 
 
-def xy_to_rc(track, x, y):
+def rc_to_xy(row, col, rows):
     """
-    Convert a track (x, y) location to (row, col)
+    Convert from (row, col) coordinates (eg: numpy array) to (x, y) coordinates (bottom left = 0,0)
 
     (x, y) convention
 
@@ -117,44 +117,15 @@ def xy_to_rc(track, x, y):
     * col +ve to the right
 
     Args:
-        track (list): List of strings describing the track
-        x (int): x coordinate to be converted
-        y (int): y coordinate to be converted
-
-    Returns:
-        tuple: (row, col)
-    """
-    r = (len(track) - 1) - y
-    c = x
-    return r, c
-
-
-def rc_to_xy(track, r, c):
-    """
-    Convert a track (row, col) location to (x, y)
-
-    (x, y) convention
-
-    * (0,0) in bottom left
-    * x +ve to the right
-    * y +ve up
-
-    (row,col) convention:
-
-    * (0,0) in top left
-    * row +ve down
-    * col +ve to the right
-
-    Args:
-        track (list): List of strings describing the track
-        r (int): row coordinate to be converted
-        c (int): col coordinate to be converted
+        row (int): row coordinate to be converted
+        col (int): col coordinate to be converted
+        rows (int): Total number of rows
 
     Returns:
         tuple: (x, y)
     """
-    x = c
-    y = (len(track) - 1) - r
+    x = col
+    y = rows - row - 1
     return x, y
 
 

@@ -2,8 +2,6 @@ import numpy as np
 
 from gym.envs.toy_text import discrete
 
-from lrl.utils.misc import rc_to_xy, xy_to_rc
-
 
 RACETRACK_DEFAULT_REWARDS = {
     'crash': -100,
@@ -586,3 +584,60 @@ def accel_within_limits(v, a, v_range):
     v = max(v, v_range[0])
     v = min(v, v_range[1])
     return v
+
+def xy_to_rc(track, x, y):
+    """
+    Convert a track (x, y) location to (row, col)
+
+    (x, y) convention
+
+    * (0,0) in bottom left
+    * x +ve to the right
+    * y +ve up
+
+    (row,col) convention:
+
+    * (0,0) in top left
+    * row +ve down
+    * col +ve to the right
+
+    Args:
+        track (list): List of strings describing the track
+        x (int): x coordinate to be converted
+        y (int): y coordinate to be converted
+
+    Returns:
+        tuple: (row, col)
+    """
+    r = (len(track) - 1) - y
+    c = x
+    return r, c
+
+
+def rc_to_xy(track, r, c):
+    """
+    Convert a track (row, col) location to (x, y)
+
+    (x, y) convention
+
+    * (0,0) in bottom left
+    * x +ve to the right
+    * y +ve up
+
+    (row,col) convention:
+
+    * (0,0) in top left
+    * row +ve down
+    * col +ve to the right
+
+    Args:
+        track (list): List of strings describing the track
+        r (int): row coordinate to be converted
+        c (int): col coordinate to be converted
+
+    Returns:
+        tuple: (x, y)
+    """
+    x = c
+    y = (len(track) - 1) - r
+    return x, y
