@@ -134,7 +134,7 @@ def params_to_name(params, n_chars=4, sep='_', first_fields=None, key_remap=None
     Convert a mappable of parameters into a string for easy test naming
 
     Warnings:
-        Currently includes hard-coded formatting for alpha and epsilon keys
+        Currently includes hard-coded formatting that interprets keys named 'alpha' or 'epsilon'
 
     Args:
         params (dict): Dictionary to convert to a string

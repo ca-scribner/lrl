@@ -31,7 +31,7 @@ def plot_solver_convergence(solver, **kwargs):
 
 
 def plot_solver_convergence_from_df(df, y='delta_max', y_label=None, x='iteration', x_label='Iteration',
-                                    data_label=None, ax=None, savefig=None):
+                                    label=None, ax=None, savefig=None, **kwargs):
     """
     Convenience binding to plot convergence statistics for a set of solver objects.
 
@@ -43,16 +43,17 @@ def plot_solver_convergence_from_df(df, y='delta_max', y_label=None, x='iteratio
         y_label (str): Optional label for y_axis (if omitted, will use y as default name unless axis is already labeled)
         x (str): X axis data (typically 'iteration', but could be any convergence data)
         x_label (str): Optional label for x_axis (if omitted, will use 'Iteration')
-        data_label (str): Optional label for the data set (shows up in axes legend)
+        label (str): Optional label for the data set (shows up in axes legend)
         ax (Axes): Optional Matplotlib Axes object to add this line to
         savefig (str): Optional filename to save the figure to
+        kwargs: Additional args passed to matplotlib's plot
 
     Returns:
         Axes: Matplotlib axes object
     """
 
     fig, ax = get_ax(ax)
-    ax.plot(df.loc[:, x], df.loc[:, y], label=data_label)
+    ax.plot(df.loc[:, x], df.loc[:, y], label=label, **kwargs)
 
     if x_label is not None or (ax.get_xlabel() == ''):
         if x_label is None:
@@ -189,9 +190,9 @@ def plot_solver_results(env, solver=None, policy=None, value=None, savefig=None,
     if value is None:
         value_list_of_tuples = [(None, None)] * number_of_plots
 
-    returned_axes = [None] * number_of_plots
     if axes_titles is None:
-        axes_titles = returned_axes[:]
+        axes_titles = list(range(number_of_plots))
+    returned_axes = {title: None for title in axes_titles}
 
     for i in range(number_of_plots):
         if savefig and axes_titles[i]:
@@ -206,8 +207,10 @@ def plot_solver_results(env, solver=None, policy=None, value=None, savefig=None,
 
         # Actual numpy array of policy/value are the second element of the list_of_tuples.  Title is the first (where
         # both titles should be the same)
-        returned_axes[i] = plot_solver_result(env, policy_list_of_tuples[i][1], value_list_of_tuples[i][1],
-                                              title=axes_titles[i], savefig=this_savefig, **kwargs)
+        returned_axes[axes_titles[i]] = plot_solver_result(env, policy_list_of_tuples[i][1], value_list_of_tuples[i][1],
+                                                           title=axes_titles[i], savefig=this_savefig, **kwargs)
+
+    return returned_axes
 
 
 def plot_policy(env, policy, **kwargs):
@@ -328,7 +331,7 @@ def plot_solver_result(env, policy=None, value=None, ax=None, add_env_to_plot=Tr
 
 
 def plot_episodes(episodes, env=None, add_env_to_plot=True, max_episodes=MAX_PATHS_ON_EPISODE_PLOT,
-                  alpha=None, color ='k', title=None, ax=None, savefig=None):
+                  alpha=None, color='k', title=None, ax=None, savefig=None):
     """
     Plot a list of episodes through an environment over a drawing of the environment
 
@@ -375,7 +378,7 @@ def plot_episodes(episodes, env=None, add_env_to_plot=True, max_episodes=MAX_PAT
     return ax
 
 
-def plot_episode(episode, env, add_env_to_plot=True, alpha=None, color='k', title=None, ax=None, savefig=None):
+def plot_episode(episode, env=None, add_env_to_plot=True, alpha=None, color='k', title=None, ax=None, savefig=None):
     """
     Plot a single episode (walk) through the environment
 
@@ -393,6 +396,9 @@ def plot_episode(episode, env, add_env_to_plot=True, alpha=None, color='k', titl
         Matplotlib Axes object with a single episode plotted to it
     """
     fig, ax = get_ax(ax)
+
+    if env is None:
+        logger.warning("env arg not strictly required, but often needs to be specified so is advisable to include it")
 
     if add_env_to_plot:
         ax = plot_env(env, ax=ax)
