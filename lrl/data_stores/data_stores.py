@@ -21,16 +21,6 @@ class GeneralIterationData:
     """
 
     def __init__(self, columns=None):
-        """
-        Initialize an instance of the class
-
-        Args:
-            columns (list): An optional list of column names for the data (if specified, this sets the order of the
-                            columns in any output Pandas DataFrame or csv)
-
-        Returns:
-            None
-        """
         #: list: Column names used for data output.
         #:
         #: If specified, this sets the order of any columns being output to Pandas DataFrame or csv
@@ -433,6 +423,21 @@ class DictWithHistory(MutableMapping):
 
     def __iter__(self):
         return iter(self._data)
+
+    def get_value_history(self, key):
+        """
+        Returns a list of tuples of the value at a given key over the entire history of that key
+
+        Args:
+            key (immutable): Any valid dictionary key
+
+        Returns:
+            (list): list containing tuples of:
+
+            * **timepoint** (*int*): Integer timepoint for this value
+            * **value** (*float*): The value of key at the corresponding timepoint
+        """
+        return self._data[key]
 
     def get_value_at_timepoint(self, key, timepoint=-1):
         """
