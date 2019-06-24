@@ -1,3 +1,4 @@
+import lrl
 from lrl import environments
 from lrl.utils.experiment_runners import run_experiments
 
@@ -47,7 +48,8 @@ environments = {
     #                                                y_accel_limits=(-2, 2),
     #                                                max_total_accel=2,
     #                                                ),
-    'lake_4x4': environments.frozen_lake.RewardingFrozenLakeEnv(is_slippery=True)
+    # 'lake_4x4': environments.frozen_lake.RewardingFrozenLakeEnv(map_name='4x4', is_slippery=True),
+    'lake_8x8': environments.frozen_lake.RewardingFrozenLakeEnv(map_name='8x8', is_slippery=True),
 }
 
 # Define solver settings
