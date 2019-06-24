@@ -1,7 +1,7 @@
 import gym
 from gym.envs.registration import register
 
-from .Racetrack import *
+from .racetrack import *
 
 
 __all__ = ['Racetrack', 'frozen_lake']

@@ -279,10 +279,12 @@ class Racetrack(discrete.DiscreteEnv):
                  x_accel_limits=None, y_accel_limits=None, max_total_accel=2):
 
         if track is None:
+            # Default track
             track = TRACKS['10x10']
         elif isinstance(track, str):
+            # If string, track is the name of a default track
             track = TRACKS[track]
-        #: list: List of strings describing track
+        #: list, str: List of strings describing track or the string name of a default track
         self.track = track
 
         #: np.array: Numpy character array of the track (better for printing on screen/accessing track at xy locations)
