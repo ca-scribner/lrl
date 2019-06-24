@@ -33,15 +33,15 @@ class QLearning(BaseSolver):
     Args:
         alpha (float, dict): (OPTIONAL)
 
-        * If None, default linear decay schedule applied, decaying from 0.1 at iter 0 to 0.025 at max iter
-        * If float, interpreted as a constant alpha value
-        * If dict, interpreted as specifications to a decay function as defined in decay_functions()
+            * If None, default linear decay schedule applied, decaying from 0.1 at iter 0 to 0.025 at max iter
+            * If float, interpreted as a constant alpha value
+            * If dict, interpreted as specifications to a decay function as defined in decay_functions()
 
         epsilon (float, dict): (OPTIONAL)
 
-        * If None, default linear decay schedule applied, decaying from 0.25 at iter 0 to 0.05 at max iter
-        * If float, interpreted as a constant epsilon value
-        * If dict, interpreted as specifications to a decay function as defined in decay_functions()
+            * If None, default linear decay schedule applied, decaying from 0.25 at iter 0 to 0.05 at max iter
+            * If float, interpreted as a constant epsilon value
+            * If dict, interpreted as specifications to a decay function as defined in decay_functions()
 
         num_episodes_for_convergence (int): Number of consecutive episodes with delta_Q < tolerance to say a solution is
             converged
@@ -140,7 +140,7 @@ class QLearning(BaseSolver):
         Returns:
             (tuple): tuple containing:
 
-            * **transition** (*tuple): Tuple of (state, reward, next_state, is_terminal)
+            * **transition** (*tuple*): Tuple of (state, reward, next_state, is_terminal)
             * **delta_q** (*float*): The (absolute) change in q caused by this step
         """
         logger.debug(f'Taking and learning from a step in the environment (transition count = {self.transitions})')

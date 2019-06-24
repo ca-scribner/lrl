@@ -49,6 +49,7 @@ class BaseSolver:
 
             * n_trains_per_eval (int): Number of training iters between evaluations
             * n_evals (int): Number of episodes for a given policy evaluation
+
             If True, score with default settings of:
 
             * n_trains_per_eval: 500
@@ -228,6 +229,9 @@ class BaseSolver:
                 raise Exception(f"Max iterations ({self._max_iters}) reached - solver did not converge")
             else:
                 logger.warning(f"Max iterations ({self._max_iters}) reached - solver did not converge")
+
+        if self.converged():
+            logger.info(f'Solver converged to solution in {self._iteration} iterations')
 
     def converged(self):
         """
