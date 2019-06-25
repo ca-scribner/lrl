@@ -3,7 +3,9 @@ import sys
 
 from setuptools import setup
 
-from .lrl.version import VERSION
+sys.path.append(os.path.abspath('./lrl'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'lrl'))
+from version import VERSION
 
 # 'setup.py publish' shortcut.
 # Thanks to requests for the idea and code
