@@ -2,7 +2,7 @@ import numpy as np
 import numbers
 
 from .base_solver import BaseSolver
-from lrl.data_stores import WalkStatistics, DictWithHistory, GeneralIterationData
+from lrl.data_stores import EpisodeStatistics, DictWithHistory, GeneralIterationData
 from lrl.utils.misc import Timer, count_dict_differences
 
 import logging
@@ -107,8 +107,8 @@ class QLearning(BaseSolver):
         #: Overloads BaseSolver's iteration_data attribute with one that includes more fields
         self.iteration_data = GeneralIterationData(columns=SOLVER_ITERATION_DATA_FIELDS)
 
-        #: WalkStatistics: Data store for statistics from training episodes
-        self.walk_statistics = WalkStatistics()
+        #: EpisodeStatistics: Data store for statistics from training episodes
+        self.episode_statistics = EpisodeStatistics()
 
         #: int: Number of consecutive episodes with delta_Q < tolerance to say a solution is converged
         self.num_episodes_for_convergence = num_episodes_for_convergence
@@ -232,7 +232,7 @@ class QLearning(BaseSolver):
         # Log metadata about iteration
         # delta_max, delta_mean = dict_differences(self.q, q_old)
         policy_changes = count_dict_differences(self.policy, policy_old, keys=states)
-        logger.debug(f"Walk resulted in delta_max = {delta_max}, and {policy_changes} policy "
+        logger.debug(f"Episode resulted in delta_max = {delta_max}, and {policy_changes} policy "
                      f"changes")
 
         self.iteration_data.add({'iteration': self._iteration,
@@ -248,7 +248,7 @@ class QLearning(BaseSolver):
         self.iteration_data.get(-1)['converged'] = self.converged()
 
         # Log more detailed metadata
-        self.walk_statistics.add(reward=sum(rewards), walk=states, terminal=is_terminal)
+        self.episode_statistics.add(reward=sum(rewards), episode=states, terminal=is_terminal)
 
         # Increment counters
         self.q.increment_timepoint()

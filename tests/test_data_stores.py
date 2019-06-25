@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 import copy
 
-from lrl.data_stores import GeneralIterationData, WalkStatistics, DictWithHistory
+from lrl.data_stores import GeneralIterationData, EpisodeStatistics, DictWithHistory
 
 
 @pytest.fixture
@@ -20,36 +20,36 @@ def supply_ws_data():
 
 @pytest.fixture
 def ws_sample(supply_ws_data):
-    ws = WalkStatistics()
+    ws = EpisodeStatistics()
     for data in supply_ws_data:
         ws.add(*data)
     return ws
 
 
 def test_WalkStatistics_add(supply_ws_data, ws_sample):
-    # ws = WalkStatistics()
+    # ws = EpisodeStatistics()
     # ws.add(5, [(0, 0), (2, 0), (10, 0)], True)
     # ws.add(3, [(0, 0), (5, 0), (10, 0)], False)
     # ws.add(12, [(1, 1), (3, 3)], True)
     ws = ws_sample
 
     # Independent data to compare to (uses same source as ws_sample)
-    rewards, walks, terminals = [list(data) for data in zip(*supply_ws_data)]
+    rewards, episodes, terminals = [list(data) for data in zip(*supply_ws_data)]
     # rewards = list(rewards)
-    # walks = list(walks)
+    # episodes = list(episodes)
     # terminals = list(terminals)
 
-    steps = [len(walk) for walk in walks]
-    statistics = [None for walk in walks]
+    steps = [len(episode) for episode in episodes]
+    statistics = [None for episode in episodes]
 
     assert ws.terminals == terminals
     assert ws.rewards == rewards
     assert ws.steps == steps
     assert ws._statistics == statistics
-    assert ws.walks[1] == walks[1]
+    assert ws.episodes[1] == episodes[1]
 
 
-def test_WalkStatistics_compute(ws_sample):
+def test_EpisodeStatistics_compute(ws_sample):
     ws = ws_sample
     ws_incremental = copy.deepcopy(ws)
     ws_all_at_once = copy.deepcopy(ws)
@@ -74,7 +74,7 @@ def test_WalkStatistics_compute(ws_sample):
             'steps_std': steps[:i+1].std(),
             'steps_max': steps[:i+1].max(),
             'steps_min': steps[:i+1].min(),
-            'walk_index': i,
+            'episode_index': i,
             'terminal': terminals[i],
             'terminal_fraction': terminals[:i+1].sum() / (i+1),
         })

@@ -1,4 +1,4 @@
-from lrl.data_stores import GeneralIterationData, WalkStatistics, DictWithHistory
+from lrl.data_stores import GeneralIterationData, EpisodeStatistics, DictWithHistory
 
 # FUTURE: Fix documentation/inheritance after this sphinx bug is fixed:
 #   https://github.com/sphinx-doc/sphinx/issues/741
@@ -114,8 +114,8 @@ class BaseSolver:
         * reward_mean: mean reward obtained during a given scoring run
         """
 
-        self.scoring_walk_statistics = {}
-        """dict, WalkStatistics: Detailed scoring data from scoring runs held as a dict of WalkStatistics objects.
+        self.scoring_episode_statistics = {}
+        """dict, EpisodeStatistics: Detailed scoring data from scoring runs held as a dict of EpisodeStatistics objects.
         
         Data is indexed by iteration number (from scoring_summary)"""
 
@@ -212,10 +212,10 @@ class BaseSolver:
             if score_while_training and (self._iteration % score_while_training['n_trains_per_eval'] == 0):
                 logger.info(f'Current greedy policy being scored {score_while_training["n_evals"]} times at iteration '
                             f'{self._iteration}')
-                self.scoring_walk_statistics[self._iteration] = self.score_policy(iters=score_while_training['n_evals'])
+                self.scoring_episode_statistics[self._iteration] = self.score_policy(iters=score_while_training['n_evals'])
 
                 data = {'iteration': self._iteration}
-                data.update(self.scoring_walk_statistics[self._iteration].get_statistics())
+                data.update(self.scoring_episode_statistics[self._iteration].get_statistics())
                 self.scoring_summary.add(data)
                 logger.info(f'Current greedy policy achieved: '
                             f'r_mean = {data["reward_mean"]}, '
@@ -257,7 +257,7 @@ class BaseSolver:
 
     def run_policy(self, max_steps=None, initial_state=None):
         """
-        Perform a walk through the environment using the current policy
+        Perform a walk (episode) through the environment using the current policy
 
         Side Effects:
             * self.env will be reset and optionally then forced into initial_state
@@ -271,10 +271,11 @@ class BaseSolver:
         Returns:
             (tuple): tuple containing:
 
-            - **states** (*list*): boolean indicating if the walk was terminal according to the environment
-            - **rewards** (*list*): list of rewards obtained during the walk (rewards[0] == 0 as step 0 is simply starting
-              the game)
-            - **is_terminal** (*bool*): Boolean denoting whether the environment returned that the walk terminated naturally
+            - **states** (*list*): boolean indicating if the episode was terminal according to the environment
+            - **rewards** (*list*): list of rewards obtained during the episode (rewards[0] == 0 as step 0 is simply
+              starting the game)
+            - **is_terminal** (*bool*): Boolean denoting whether the environment returned that the episode terminated
+              naturally
         """
         if max_steps is None:
             max_steps = self._max_steps_per_episode
@@ -297,12 +298,13 @@ class BaseSolver:
             if terminal:
                 break
 
-        logger.debug(f"Walk completed in {len(states)} steps (terminal={terminal}), receiving total reward of {sum(rewards)}")
+        logger.debug(f"Episode completed in {len(states)} steps (terminal={terminal}), "
+                     f"receiving total reward of {sum(rewards)}")
         return states, rewards, terminal
 
     def score_policy(self, iters=500, max_steps=None, initial_state=None):
         """
-        Score the current policy by performing iters greedy walks through the environment and returning statistics
+        Score the current policy by performing iters greedy episodes in the environment and returning statistics
 
         Side Effects:
             self.env will be reset
@@ -311,22 +313,22 @@ class BaseSolver:
             more side effects
 
         Args:
-            iters: Number of walks through the environment
-            max_steps: Maximum number of steps allowed per walk.  If None, defaults to self.max_steps_per_episode
-            initial_state: State for the environment to be placed in to start the walk (used to force a deterministic
+            iters: Number of episodes in the environment
+            max_steps: Maximum number of steps allowed per episode.  If None, defaults to self.max_steps_per_episode
+            initial_state: State for the environment to be placed in to start the episode (used to force a deterministic
                 start from anywhere in the environment rather than the typical start position)
 
         Returns:
-            WalkStatistics: Object containing statistics about the walks (rewards, number of steps, etc.)
+            EpisodeStatistics: Object containing statistics about the episodes (rewards, number of steps, etc.)
         """
         if max_steps is None:
             max_steps = self._max_steps_per_episode
-        statistics = WalkStatistics()
+        statistics = EpisodeStatistics()
 
         for _ in range(iters):
             # Walk through the environment following the current policy, up to max_steps total steps
             states, rewards, terminal = self.run_policy(max_steps=max_steps, initial_state=initial_state)
-            statistics.add(reward=sum(rewards), walk=states, terminal=terminal)
+            statistics.add(reward=sum(rewards), episode=states, terminal=terminal)
             logger.debug(f"Policy scored {statistics.rewards[-1]} in {len(states)} steps (terminal={terminal})")
 
         return statistics

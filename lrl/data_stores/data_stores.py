@@ -80,32 +80,32 @@ class GeneralIterationData:
         self.to_dataframe().to_csv(filename, index=False, **kwargs)
 
 
-class WalkStatistics(object):
+class EpisodeStatistics(object):
     """
-    Container for statistics about a set of independent walks through an environment, typically following one policy
+    Container for statistics about a set of independent episodes through an environment, typically following one policy
 
     Statistics are lazily computed and memorized
 
     DOCTODO: Add example usage.  show plot_episodes
     """
     def __init__(self):
-        #: list: List of the total reward for each walk (raw data)
+        #: list: List of the total reward for each episode (raw data)
         self.rewards = []
 
-        #: list: List of all walks passed to the data object (raw data)
-        self.walks = []
+        #: list: List of all episodes passed to the data object (raw data)
+        self.episodes = []
 
-        #: list: List of the total steps taken for each walk (raw data)
+        #: list: List of the total steps taken for each episode (raw data)
         self.steps = []
 
-        #: list: List of whether each input walk was terminal (raw data)
+        #: list: List of whether each input episode was terminal (raw data)
         self.terminals = []
 
         #: list: List of dicts of computed statistics
         self._statistics = []
 
         #: list: Column names/order used for outputting to dataframe
-        self._statistics_columns = ['walk_index', 'reward', 'steps', 'terminal',
+        self._statistics_columns = ['episode_index', 'reward', 'steps', 'terminal',
                                     'reward_mean', 'reward_median', 'reward_std', 'reward_min', 'reward_max',
                                     'steps_mean', 'steps_median', 'steps_std', 'steps_min', 'steps_max',
                                     'terminal_fraction']
@@ -113,9 +113,9 @@ class WalkStatistics(object):
     def __str__(self):
         self.compute()
 
-        return 'walk: {}, reward: {}, reward_mean: {}, reward_std: {}, reward_max: {}, reward_min: {}, ' \
+        return 'episode: {}, reward: {}, reward_mean: {}, reward_std: {}, reward_max: {}, reward_min: {}, ' \
                'steps: {}, steps_mean: {}'.format(
-                    self.get_statistic(statistic='walk_index', index=-1),
+                    self.get_statistic(statistic='episode_index', index=-1),
                     self.get_statistic(statistic='reward', index=-1),
                     self.get_statistic(statistic='reward_mean', index=-1),
                     self.get_statistic(statistic='reward_std', index=-1),
@@ -125,27 +125,27 @@ class WalkStatistics(object):
                     self.get_statistic(statistic='steps_mean', index=-1),
                )
 
-    def add(self, reward, walk, terminal):
+    def add(self, reward, episode, terminal):
         """
-        Add a walk to the data store
+        Add an episode to the data store
 
         Args:
-            reward (float): Total reward from the walk
-            walk (list): List of states encoutered in the walk, including the starting and final state
-            terminal (bool): Boolean indicating if walk was terminal (did environment say walk has ended)
+            reward (float): Total reward from the episode
+            episode (list): List of states encoutered in the episode, including the starting and final state
+            terminal (bool): Boolean indicating if episode was terminal (did environment say episode has ended)
 
         Returns:
             None
         """
         self.rewards.append(reward)
-        self.steps.append(len(walk))
-        self.walks.append(walk)
+        self.steps.append(len(episode))
+        self.episodes.append(episode)
         self.terminals.append(terminal)
         self._statistics.append(None)
 
     def get_statistic(self, statistic='reward_mean', index=-1):
         """
-        Return a lazily computed and memorized statistic about the rewards from walks 0 to index
+        Return a lazily computed and memorized statistic about the rewards from episodes 0 to index
 
         If the statistic has not been previous computed, it will be computed and returned.  See .get_statistics() for
         list of statistics available
@@ -155,11 +155,11 @@ class WalkStatistics(object):
 
         Args:
             statistic (str): See .compute() for available statistics
-            index (int): Walk index for requested statistic
+            index (int): Episode index for requested statistic
 
         Notes:
-            Statistics are computed for all walks up to and including the requested statistic.  For example if walks
-            have rewards of [1, 3, 5, 10], get_statistic('reward_mean', index=2) returns 3 (mean of [1, 3, 5]).
+            Statistics are computed for all episodes up to and including the requested statistic.  For example if
+            episodes have rewards of [1, 3, 5, 10], get_statistic('reward_mean', index=2) returns 3 (mean of [1, 3, 5]).
 
         DOCTODO: Example usage (show getting some statistics)
 
@@ -170,7 +170,7 @@ class WalkStatistics(object):
 
     def get_statistics(self, index=-1):
         """
-        Return a lazily computed and memorized dictionary of all statistics about walks 0 to index
+        Return a lazily computed and memorized dictionary of all statistics about episodes 0 to index
 
         If the statistic has not been previous computed, it will be computed here.
 
@@ -178,14 +178,14 @@ class WalkStatistics(object):
             self.statistics[index] will be computed using self.compute() if it has not been already
 
         Args:
-            index (int): Walk index for requested statistic
+            index (int): Episode index for requested statistic
 
         Returns:
             dict: Details and statistics about this iteration, with keys:
 
             **Details about this iteration:**
 
-            * **walk_index** (*int*): Index of episode
+            * **episode_index** (*int*): Index of episode
             * **terminal** (*bool*): Boolean of whether this episode was terminal
             * **reward** (*float*): This episode's reward (included to give easy access to per-iteration data)
             * **steps** (*int*): This episode's steps (included to give easy access to per-iteration data)
@@ -210,14 +210,14 @@ class WalkStatistics(object):
 
     def compute(self, index=-1, force=False):
         """
-        Compute and store statistics about rewards and steps for walks up to and including the indexth walk
+        Compute and store statistics about rewards and steps for episodes up to and including the indexth episode
 
         Side Effects:
             self.statistics[index] will be updated
 
         Args:
-            index (int or 'all'): If integer, the index of the walk for which statistics are computed.  Eg: If index==3,
-                compute the statistics (see get_statistics() for list) for the series of walks from
+            index (int or 'all'): If integer, the index of the episode for which statistics are computed.  Eg: If
+                index==3, compute the statistics (see get_statistics() for list) for the series of episodes from
                 0 up to and not including 3 (typical python indexing rules)
                 If 'all', compute statistics for all indices, skipping any that have been previously
                 computed unless force == True
@@ -259,19 +259,19 @@ class WalkStatistics(object):
                     'steps_std': np.std(steps_array),
                     'steps_max': np.max(steps_array),
                     'steps_min': np.min(steps_array),
-                    'walk_index': index,
+                    'episode_index': index,
                     'terminal': terminals_array[-1],
                     'terminal_fraction': terminals_array.sum() / terminals_array.shape[0],
                 }
 
-    def to_dataframe(self, include_walks=False):
+    def to_dataframe(self, include_episodes=False):
         """
-        Return a Pandas DataFrame of the walk statistics
+        Return a Pandas DataFrame of the episode statistics
 
         See .get_statistics() for a definition of each column.  Order of columns is set through self.statistics_columns
 
         Args:
-            include_walks (bool): If True, add column including the entire walk for each iteration
+            include_episodes (bool): If True, add column including the entire episode for each iteration
 
         Returns:
             Pandas DataFrame
@@ -281,8 +281,8 @@ class WalkStatistics(object):
 
         # Return as a DataFrame
         df = pd.DataFrame(self._statistics, columns=self._statistics_columns)
-        if include_walks:
-            df['walks'] = self.walks
+        if include_episodes:
+            df['episodes'] = self.episodes
         return df
 
     def to_csv(self, filename, **kwargs):

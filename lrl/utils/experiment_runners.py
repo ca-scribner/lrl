@@ -50,7 +50,7 @@ def run_experiment(env, params, output_path):
 
         * **solver** (*BaseSolver*, *ValueIteration*, *PolicyIteration*, *QLearner*): Fully populated solver object
           (after solving env)
-        * **scored_results** (*WalkStatistics*): WalkStatistics object of results from scoring the final policy
+        * **scored_results** (*EpisodeStatistics*): EpisodeStatistics object of results from scoring the final policy
         * **solve_time** (*float*): Time in seconds used to solve the env (eg: run solver.iterate_to_convergence())
     """
     # Create the output path, cleaning out old results if needed
@@ -85,26 +85,26 @@ def run_experiment(env, params, output_path):
         pass
     solver.iteration_data.to_csv(f'{output_path}/iteration_data.csv')
     try:
-        solver.walk_statistics.to_dataframe(include_walks=True).to_csv(f'{output_path}/training_episodes.csv')
+        solver.episode_statistics.to_dataframe(include_episodes=True).to_csv(f'{output_path}/training_episodes.csv')
     except AttributeError:
-        # walk_statistics only exists for some solvers
+        # episode_statistics only exists for some solvers
         pass
 
     # Plot relevant plots
     plotting.plot_solver_results(env, solver=solver, savefig=f'{output_path}/solver_results')
-    plotting.plot_episodes(scored_results.walks, env, add_env_to_plot=True, max_episodes=1000, savefig=f'{output_path}/scored_episodes')
+    plotting.plot_episodes(scored_results.episodes, env, add_env_to_plot=True, max_episodes=1000, savefig=f'{output_path}/scored_episodes')
     try:
-        for k, ws in solver.scoring_walk_statistics.items():
-            plotting.plot_episodes(ws.walks, env, max_episodes=1000,
+        for k, ws in solver.scoring_episode_statistics.items():
+            plotting.plot_episodes(ws.episodes, env, max_episodes=1000,
                                    savefig=f'{output_path}/intermediate_scoring_results{str(k)}')
     except AttributeError:
         # No intermediate scoring
         pass
     try:
-        plotting.plot_episodes(solver.walk_statistics.walks, env, max_episodes=1000,
+        plotting.plot_episodes(solver.episode_statistics.episodes, env, max_episodes=1000,
                                savefig=f'{output_path}/training_episodes')
     except AttributeError:
-        # walk_statistics only exists for some solvers
+        # episode_statistics only exists for some solvers
         pass
 
     return {'solver': solver, 'scored_results': scored_results, 'solve_time': solve_time}

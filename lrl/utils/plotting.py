@@ -336,12 +336,12 @@ def plot_episodes(episodes, env=None, add_env_to_plot=True, max_episodes=MAX_PAT
     Plot a list of episodes through an environment over a drawing of the environment
 
     Args:
-        episodes (list, WalkStatistics): Series of walks to be plotted.  If WalkStatistics instance, .walks will be
-                                      extracted
+        episodes (list, EpisodeStatistics): Series of episodes to be plotted.  If EpisodeStatistics instance, .episodes
+            will be extracted
         env: Environment traversed
         add_env_to_plot (bool): If True, use plot_env to plot the environment to the image
-        alpha (float): (Optional) alpha (transparency) used for plotting the walk.
-                       If left as None, a value will be chosen based on the number of walks to be plotted
+        alpha (float): (Optional) alpha (transparency) used for plotting the episode.
+                       If left as None, a value will be chosen based on the number of episodes to be plotted
         color (str): Matplotlib-style color designation
         title (str): (Optional) Title to be added to the axes
         ax (axes): (Optional) Matplotlib axes object to write the plot to
@@ -352,8 +352,8 @@ def plot_episodes(episodes, env=None, add_env_to_plot=True, max_episodes=MAX_PAT
     Returns:
         Matplotlib Axes object with episodes plotted to it
     """
-    # Attempt to extract walks from a WalkStatistics instance
-    episodes = getattr(episodes, 'walks', episodes)
+    # Attempt to extract episodes from a EpisodeStatistics instance
+    episodes = getattr(episodes, 'episodes', episodes)
 
     fig, ax = get_ax(ax)
 
@@ -383,10 +383,10 @@ def plot_episode(episode, env=None, add_env_to_plot=True, alpha=None, color='k',
     Plot a single episode (walk) through the environment
 
     Args:
-        episode (list): List of states encountered in the walk
+        episode (list): List of states encountered in the episode
         env: Environment traversed
         add_env_to_plot (bool): If True, use plot_env to plot the environment to the image
-        alpha (float): (Optional) alpha (transparency) used for plotting the walk.
+        alpha (float): (Optional) alpha (transparency) used for plotting the episode.
         color (str): Matplotlib-style color designation
         title (str): (Optional) Title to be added to the axes
         ax (axes): (Optional) Matplotlib axes object to write the plot to
