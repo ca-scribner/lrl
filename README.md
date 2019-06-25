@@ -15,6 +15,15 @@ The idea behind this package originated as material to support students completi
 Installation Instructions
 -------------------------
 
-For now, simply clone the package, drop it into a subfolder of your working directory, and import as required (for example, like in examples/example_experiment.py).
+lrl is accessible using pip
 
-Future plans are to build this as a fully qualified package to be installed through pip.
+```
+pip install lrl
+```
+
+or, you can pull the source to your working directory so you can play along at home
+
+```
+git clone https://github.com/ca-scribner/lrl.git lrl
+pip install -e lrl
+```

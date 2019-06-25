@@ -13,6 +13,7 @@
 import os
 import sys
 sys.path.insert(0, os.path.abspath('../../'))
+from lrl.version import VERSION
 
 
 # -- Project information -----------------------------------------------------
@@ -22,8 +23,8 @@ copyright = '2019, Andrew Scribner'
 author = 'Andrew Scribner'
 
 # The full version, including alpha/beta/rc tags
-release = '0.0.1'
-
+# release = '0.0.1'
+release = VERSION
 
 # -- General configuration ---------------------------------------------------
 

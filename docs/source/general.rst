@@ -54,9 +54,18 @@ TODO: Add xy plot of something here
 Installation Instructions
 -------------------------
 
-For now, simply clone the package from `GitHub <https://github.com/ca-scribner/lrl>`_, drop it into a subfolder of your working directory, and import as required (for example, like in examples/example_experiment.py).
+lrl is accessible using pip
 
-Future plans are to build this as a fully qualified package to be installed through pip.
+```
+pip install lrl
+```
+
+or, you can pull the source from `GitHub <https://github.com/ca-scribner/lrl>`_ to your working directory so you can play along at home
+
+```
+git clone https://github.com/ca-scribner/lrl.git lrl
+pip install -e lrl
+```
 
 Acknowledgements and Contributions
 ----------------------------------
