@@ -1,7 +1,8 @@
 import os
 import sys
+import shutil
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 sys.path.append(os.path.abspath('./lrl'))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'lrl'))
@@ -10,6 +11,11 @@ from version import VERSION
 # 'setup.py publish' shortcut.
 # Thanks to requests for the idea and code
 if sys.argv[-1] == 'publish':
+    # Remove old stuff
+    print("Removing old ./dist and ./lrl.egg-info")
+    shutil.rmtree('./dist')
+    shutil.rmtree('./lrl.egg-info')
+    # Make new stuff
     os.system('python setup.py sdist bdist_wheel')
     os.system('twine upload dist/*')
     sys.exit()
@@ -31,8 +37,8 @@ setup(name='lrl',
       author='Andrew Scribner',
       license='BSD 3',
       url='https://github.com/ca-scribner/lrl',
-      packages=['lrl'],
       # classifiers=[],  # Where do these come from?
+      packages=find_packages(),
       install_requires=[
           'gym>=0.12.1',
           'matplotlib>=3.0.3',
