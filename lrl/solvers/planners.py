@@ -163,52 +163,6 @@ class PolicyIteration(BaseSolver):
         for k in self.env.P.keys():
             self.value[k] = value_function_initial_value
 
-    def _policy_evaluation(self, max_iters=None):
-        """
-        Compute an estimate of the value function for the current policy to within self.tolerance
-
-        Side Effects:
-            self.value: Updated to the newest estimate of the value function
-
-        Returns:
-            None
-        """
-        if max_iters is None:
-            max_iters = self._max_policy_eval_iters_per_improvement
-        value_new = policy_evaluation(value_function=self.value.to_dict(), env=self.env, policy=self.policy, gamma=self._gamma,
-                                      evaluation_type=self._policy_evaluation_type,
-                                      tolerance=self._value_function_tolerance,
-                                      max_iters=max_iters)
-
-        self.value.update(value_new)
-        self.value.increment_timepoint()
-
-    def _policy_improvement(self, return_differences=True):
-        """
-        Update the policy to be greedy relative to the most recent value function
-
-        Side Effects:
-            self.policy: Updated to be greedy relative to self.value
-
-        Args:
-            return_differences: If True, return number of differences between old and new policies
-
-        Returns:
-            int: (if return_differences==True) Number of differences between the old and new policies
-        """
-        value_new, policy_new = policy_evaluation(value_function=self.value.to_dict(), env=self.env,
-                                                  gamma=self._gamma, evaluation_type='max',
-                                                  tolerance=self._value_function_tolerance)
-
-        if return_differences:
-            returned = count_dict_differences(policy_new, self.policy)
-        else:
-            returned = None
-
-        self.policy.update(policy_new)
-        self.policy.increment_timepoint()
-        return returned
-
     def iterate(self):
         """
         Perform a single iteration of policy iteration, updating self.value and storing metadata about the iteration.
@@ -283,6 +237,52 @@ class PolicyIteration(BaseSolver):
                 return False
             except KeyError:
                 raise KeyError("Iteration Data has no policy_changes entry - cannot determine convergence status")
+
+    def _policy_evaluation(self, max_iters=None):
+        """
+        Compute an estimate of the value function for the current policy to within self.tolerance
+
+        Side Effects:
+            self.value: Updated to the newest estimate of the value function
+
+        Returns:
+            None
+        """
+        if max_iters is None:
+            max_iters = self._max_policy_eval_iters_per_improvement
+        value_new = policy_evaluation(value_function=self.value.to_dict(), env=self.env, policy=self.policy, gamma=self._gamma,
+                                      evaluation_type=self._policy_evaluation_type,
+                                      tolerance=self._value_function_tolerance,
+                                      max_iters=max_iters)
+
+        self.value.update(value_new)
+        self.value.increment_timepoint()
+
+    def _policy_improvement(self, return_differences=True):
+        """
+        Update the policy to be greedy relative to the most recent value function
+
+        Side Effects:
+            self.policy: Updated to be greedy relative to self.value
+
+        Args:
+            return_differences: If True, return number of differences between old and new policies
+
+        Returns:
+            int: (if return_differences==True) Number of differences between the old and new policies
+        """
+        value_new, policy_new = policy_evaluation(value_function=self.value.to_dict(), env=self.env,
+                                                  gamma=self._gamma, evaluation_type='max',
+                                                  tolerance=self._value_function_tolerance)
+
+        if return_differences:
+            returned = count_dict_differences(policy_new, self.policy)
+        else:
+            returned = None
+
+        self.policy.update(policy_new)
+        self.policy.increment_timepoint()
+        return returned
 
 
 # Helpers

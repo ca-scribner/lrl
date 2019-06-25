@@ -110,6 +110,39 @@ class WalkStatistics(object):
                                     'steps_mean', 'steps_median', 'steps_std', 'steps_min', 'steps_max',
                                     'terminal_fraction']
 
+    def __str__(self):
+        self.compute()
+
+        return 'walk: {}, reward: {}, reward_mean: {}, reward_std: {}, reward_max: {}, reward_min: {}, ' \
+               'steps: {}, steps_mean: {}'.format(
+                    self.get_statistic(statistic='walk_index', index=-1),
+                    self.get_statistic(statistic='reward', index=-1),
+                    self.get_statistic(statistic='reward_mean', index=-1),
+                    self.get_statistic(statistic='reward_std', index=-1),
+                    self.get_statistic(statistic='reward_max', index=-1),
+                    self.get_statistic(statistic='reward_min', index=-1),
+                    self.get_statistic(statistic='steps', index=-1),
+                    self.get_statistic(statistic='steps_mean', index=-1),
+               )
+
+    def add(self, reward, walk, terminal):
+        """
+        Add a walk to the data store
+
+        Args:
+            reward (float): Total reward from the walk
+            walk (list): List of states encoutered in the walk, including the starting and final state
+            terminal (bool): Boolean indicating if walk was terminal (did environment say walk has ended)
+
+        Returns:
+            None
+        """
+        self.rewards.append(reward)
+        self.steps.append(len(walk))
+        self.walks.append(walk)
+        self.terminals.append(terminal)
+        self._statistics.append(None)
+
     def get_statistic(self, statistic='reward_mean', index=-1):
         """
         Return a lazily computed and memorized statistic about the rewards from walks 0 to index
@@ -174,24 +207,6 @@ class WalkStatistics(object):
         if self._statistics[index] is None:
             self.compute(index=index)
         return self._statistics[index]
-
-    def add(self, reward, walk, terminal):
-        """
-        Add a walk to the data store
-
-        Args:
-            reward (float): Total reward from the walk
-            walk (list): List of states encoutered in the walk, including the starting and final state
-            terminal (bool): Boolean indicating if walk was terminal (did environment say walk has ended)
-
-        Returns:
-            None
-        """
-        self.rewards.append(reward)
-        self.steps.append(len(walk))
-        self.walks.append(walk)
-        self.terminals.append(terminal)
-        self._statistics.append(None)
 
     def compute(self, index=-1, force=False):
         """
@@ -286,21 +301,6 @@ class WalkStatistics(object):
         # Ensure everything is computed
         self.compute('all')
         self.to_dataframe().to_csv(filename, index=False, **kwargs)
-
-    def __str__(self):
-        self.compute()
-
-        return 'walk: {}, reward: {}, reward_mean: {}, reward_std: {}, reward_max: {}, reward_min: {}, ' \
-               'steps: {}, steps_mean: {}'.format(
-                    self.get_statistic(statistic='walk_index', index=-1),
-                    self.get_statistic(statistic='reward', index=-1),
-                    self.get_statistic(statistic='reward_mean', index=-1),
-                    self.get_statistic(statistic='reward_std', index=-1),
-                    self.get_statistic(statistic='reward_max', index=-1),
-                    self.get_statistic(statistic='reward_min', index=-1),
-                    self.get_statistic(statistic='steps', index=-1),
-                    self.get_statistic(statistic='steps_mean', index=-1),
-               )
 
 
 class DictWithHistory(MutableMapping):
@@ -424,6 +424,35 @@ class DictWithHistory(MutableMapping):
     def __iter__(self):
         return iter(self._data)
 
+    def update(self, d):
+        """
+        Update this instance with a dictionary of data, d (similar to dict.update())
+
+        Keys in d that are present in this object overwrite the previous value.  Keys in d that are missing in this
+        object are added.
+
+        All data written from d is given the same timepoint (even if timepoint_mode=implicit) - the addition is treated
+        as a single update to the object rather than a series of updates.
+
+        Args:
+            d (dict): Dictionary of data to be added here
+
+        Returns:
+            None
+        """
+        # Override the timepoint mode temporarily if necessary.
+        timepoint_mode_cache = None
+        if self.timepoint_mode == 'implicit':
+            timepoint_mode_cache = self.timepoint_mode
+            self.timepoint_mode = 'explicit'
+
+        for k, val in d.items():
+            self[k] = val
+
+        if timepoint_mode_cache:
+            self.timepoint_mode = timepoint_mode_cache
+            self.increment_timepoint()
+
     def get_value_history(self, key):
         """
         Returns a list of tuples of the value at a given key over the entire history of that key
@@ -491,35 +520,6 @@ class DictWithHistory(MutableMapping):
                     # Key did not exist in the past timepoint.  Skipping
                     pass
         return data
-
-    def update(self, d):
-        """
-        Update this instance with a dictionary of data, d (similar to dict.update())
-
-        Keys in d that are present in this object overwrite the previous value.  Keys in d that are missing in this
-        object are added.
-
-        All data written from d is given the same timepoint (even if timepoint_mode=implicit) - the addition is treated
-        as a single update to the object rather than a series of updates.
-
-        Args:
-            d (dict): Dictionary of data to be added here
-
-        Returns:
-            None
-        """
-        # Override the timepoint mode temporarily if necessary.
-        timepoint_mode_cache = None
-        if self.timepoint_mode == 'implicit':
-            timepoint_mode_cache = self.timepoint_mode
-            self.timepoint_mode = 'explicit'
-
-        for k, val in d.items():
-            self[k] = val
-
-        if timepoint_mode_cache:
-            self.timepoint_mode = timepoint_mode_cache
-            self.increment_timepoint()
 
     def increment_timepoint(self):
         """

@@ -117,16 +117,23 @@ class QLearning(BaseSolver):
         self._convergence_desc = f"{self.num_episodes_for_convergence} episodes with max delta in Q function < " \
             f"{self._value_function_tolerance}"
 
+    def _policy_improvement(self, states=None):
+        """
+        Update the policy to be greedy relative to the most recent q function
 
-    @property
-    def alpha(self):
-        """Returns value of alpha at current iteration"""
-        return decay_functions(self._alpha_settings)(self._iteration)
+        Side Effects:
+            self.policy: Updated to be greedy relative to self.q
 
-    @property
-    def epsilon(self):
-        """Returns value of epsilon at current iteration"""
-        return decay_functions(self._epsilon_settings)(self._iteration)
+        Args:
+            states: List of states to update.  If None, all states will be updated
+
+        Returns:
+            None
+        """
+        if states is None:
+            states = self.policy.keys()
+        for state in states:
+            self.policy[state] = self.choose_epsilon_greedy_action(state, epsilon=0)
 
     def step(self, count_transition=True):
         """
@@ -177,67 +184,6 @@ class QLearning(BaseSolver):
         logger.debug(f'Completed step from {state} -> {next_state} yielding {reward} (terminal={is_terminal})')
 
         return (state, reward, next_state, is_terminal), abs(delta_q)
-
-    def get_q_at_state(self, state):
-        """
-        Returns a numpy array of q values at the current state in the same order as the standard action indexing
-        Args:
-            state (int, tuple): Descriptor of current state in environment
-
-        Returns:
-            np.array: Numpy array of q for all actions
-        """
-        actions = list(range(self.env.action_space.n))
-        try:
-            # This will work if q is indexed by integers for action
-            these_q = np.array([self.q[(state, action)] for action in actions])
-        except KeyError:
-            # Otherwise, try converting action index to tuple and then merging the tuples
-            these_q = np.array([self.q[state + self.env.index_to_action[action]] for action in actions])
-
-        return these_q
-
-    def choose_epsilon_greedy_action(self, state, epsilon=None):
-        """
-        Return an action chosen by epsilon-greedy scheme based on the current estimate of Q
-
-        Args:
-            state (int, tuple): Descriptor of current state in environment
-            epsilon: Optional.  If None, self.epsilon is used
-
-        Returns:
-            int or tuple: action chosen
-        """
-        if epsilon is None:
-            epsilon = self.epsilon
-
-        these_q = self.get_q_at_state(state)
-
-        # Check if action is a tuple.  action=0 should be accessible if action is an integer
-        return_action_as_tuple = False
-        try:
-            _ = self.q[(state, 0)]
-        except KeyError:
-            return_action_as_tuple = True
-
-        # Try/except to handle other indexing here
-        i_best_q = np.argmax(these_q)
-
-        if epsilon > 0:
-            # Evenly distribute an epsilon-chance of randomness
-            weights = np.ones(len(these_q)) * epsilon / len(these_q)
-
-            # Give the best choice the rest
-            weights[i_best_q] += 1.0 - epsilon
-
-            action = np.random.choice(len(these_q), p=weights)
-        else:
-            action = i_best_q
-
-        if return_action_as_tuple:
-            action = self.env.index_to_action[action]
-
-        return action
 
     def iterate(self):
         """
@@ -309,6 +255,48 @@ class QLearning(BaseSolver):
         self.policy.increment_timepoint()
         self._iteration += 1
 
+    def choose_epsilon_greedy_action(self, state, epsilon=None):
+        """
+        Return an action chosen by epsilon-greedy scheme based on the current estimate of Q
+
+        Args:
+            state (int, tuple): Descriptor of current state in environment
+            epsilon: Optional.  If None, self.epsilon is used
+
+        Returns:
+            int or tuple: action chosen
+        """
+        if epsilon is None:
+            epsilon = self.epsilon
+
+        these_q = self.get_q_at_state(state)
+
+        # Check if action is a tuple.  action=0 should be accessible if action is an integer
+        return_action_as_tuple = False
+        try:
+            _ = self.q[(state, 0)]
+        except KeyError:
+            return_action_as_tuple = True
+
+        # Try/except to handle other indexing here
+        i_best_q = np.argmax(these_q)
+
+        if epsilon > 0:
+            # Evenly distribute an epsilon-chance of randomness
+            weights = np.ones(len(these_q)) * epsilon / len(these_q)
+
+            # Give the best choice the rest
+            weights[i_best_q] += 1.0 - epsilon
+
+            action = np.random.choice(len(these_q), p=weights)
+        else:
+            action = i_best_q
+
+        if return_action_as_tuple:
+            action = self.env.index_to_action[action]
+
+        return action
+
     def converged(self):
         """
         Returns True if solver is converged.
@@ -352,23 +340,24 @@ class QLearning(BaseSolver):
             except KeyError:
                 raise KeyError("Iteration Data has no delta_max field - cannot determine convergence status")
 
-    def _policy_improvement(self, states=None):
+    def get_q_at_state(self, state):
         """
-        Update the policy to be greedy relative to the most recent q function
-
-        Side Effects:
-            self.policy: Updated to be greedy relative to self.q
-
+        Returns a numpy array of q values at the current state in the same order as the standard action indexing
         Args:
-            states: List of states to update.  If None, all states will be updated
+            state (int, tuple): Descriptor of current state in environment
 
         Returns:
-            None
+            np.array: Numpy array of q for all actions
         """
-        if states is None:
-            states = self.policy.keys()
-        for state in states:
-            self.policy[state] = self.choose_epsilon_greedy_action(state, epsilon=0)
+        actions = list(range(self.env.action_space.n))
+        try:
+            # This will work if q is indexed by integers for action
+            these_q = np.array([self.q[(state, action)] for action in actions])
+        except KeyError:
+            # Otherwise, try converting action index to tuple and then merging the tuples
+            these_q = np.array([self.q[state + self.env.index_to_action[action]] for action in actions])
+
+        return these_q
 
     def init_q(self, init_val=0.0):
         """
@@ -393,6 +382,16 @@ class QLearning(BaseSolver):
         self.q = DictWithHistory(timepoint_mode='explicit')
         for k in state_action_keys:
             self.q[k] = init_val
+
+    @property
+    def alpha(self):
+        """Returns value of alpha at current iteration"""
+        return decay_functions(self._alpha_settings)(self._iteration)
+
+    @property
+    def epsilon(self):
+        """Returns value of epsilon at current iteration"""
+        return decay_functions(self._epsilon_settings)(self._iteration)
 
 
 def decay_functions(settings):

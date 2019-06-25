@@ -3,6 +3,24 @@ import numpy as np
 from collections.abc import Mapping
 
 
+class Timer:
+    """
+    A Simple Timer class for timing code
+    """
+    def __init__(self):
+        #: timeit.default_timer object initialized at instantiation
+        self.start = timer()
+
+    def elapsed(self):
+        """
+        Return the time elapsed since this object was instantiated, in seconds
+
+        Returns:
+            float: Time elapsed in seconds
+        """
+        return timer() - self.start
+
+
 def print_dict_by_row(d, fmt='{key:20s}: {val:d}'):
     """
     Print a dictionary with a little extra structure, printing a different key/value to each line.
@@ -80,24 +98,6 @@ def dict_differences(d1, d2):
             delta_max = delta
         delta_sum += delta
     return delta_max, delta_sum / len(keys)
-
-
-class Timer:
-    """
-    A Simple Timer class for timing code
-    """
-    def __init__(self):
-        #: timeit.default_timer object initialized at instantiation
-        self.start = timer()
-
-    def elapsed(self):
-        """
-        Return the time elapsed since this object was instantiated, in seconds
-
-        Returns:
-            float: Time elapsed in seconds
-        """
-        return timer() - self.start
 
 
 def rc_to_xy(row, col, rows):
