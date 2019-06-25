@@ -46,6 +46,6 @@ setup(name='lrl',
           'pandas>=0.24.2',
           'scikit-learn>=0.20.3'
       ],
-      python_requires='>3.5',
+      python_requires='>3.6',
       zip_save=False,
       )
