@@ -13,8 +13,13 @@ from version import VERSION
 if sys.argv[-1] == 'publish':
     # Remove old stuff
     print("Removing old ./dist and ./lrl.egg-info")
-    shutil.rmtree('./dist')
-    shutil.rmtree('./lrl.egg-info')
+    try:
+        shutil.rmtree('./build')
+        shutil.rmtree('./dist')
+        shutil.rmtree('./lrl.egg-info')
+    except FileNotFoundError:
+        # Nothing to remove
+        pass
     # Make new stuff
     os.system('python setup.py sdist bdist_wheel')
     os.system('twine upload dist/*')
