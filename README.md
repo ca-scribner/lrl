@@ -21,7 +21,7 @@ lrl is accessible using pip
 pip install lrl
 ```
 
-or, you can pull the source to your working directory so you can play along at home 
+or, you can pull the source to your working directory so you can play along at home
 
 ```
 git clone https://github.com/ca-scribner/lrl.git lrl
