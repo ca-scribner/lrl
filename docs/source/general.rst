@@ -8,8 +8,6 @@ lrl is a Python package for applying (and hopefully, learning!) basic Reinforcem
 
 The overall goal of the author in writing this package was to provide people interested in Reinforcement Learning a starting point and handrail to help them as they began learning.  The fastest, most efficient implementation is less important here than code which can be read and learned from by someone new to the topic and with intermediate Python skills.
 
-The idea behind this package originated as material to support students completing the Georgia Tech OMSCS class CS 7641: Machine Learning.  CS 7641 takes a top-down approach to learning Machine Learning, whereby students are encouraged to find existing implementations of the algorithms discussed and apply them to gain a feel for their overall properties and pitfalls.  While Python implementations for Supervised Learning are well represented (`scikit-learn <https://scikit-learn.org/>`_) and a student-driven project for Randomized Optimization and Search (`mlrose <https://mlrose.readthedocs.io/>`_) is available, robust and well-commented implementations for simple Reinforcement Learning were less ubiquitous.  This package attempts to fill that void.
-
 The source code was written by Andrew Scribner and is available on `GitHub <https://github.com/ca-scribner/lrl>`_.
 
 Content
