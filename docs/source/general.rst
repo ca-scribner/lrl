@@ -42,8 +42,6 @@ Racetrack is a simulation of a car driving on a track from one or more starting 
 
 A non-exhaustive set of plotting scripts to display the calculated solutions to the environments is also included, as well as usage examples.  The hope is that users will apply the package as written, realize they want to dig deeper into a particular aspect or add some feature they read about in literature, and then add that to the existing codebase.
 
-TODO: Add xy plot of something here
-
 .. figure:: rewardingfrozenlake_solved_example_policy_value.png
    :align: center
 
